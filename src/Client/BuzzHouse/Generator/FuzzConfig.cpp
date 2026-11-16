@@ -1148,6 +1148,17 @@ bool FuzzConfig::tableHasPartitions(const bool detached, const String & database
     return !res.empty() && res[0] != '0';
 }
 
+bool FuzzConfig::systemTableHasRow(const String & table, const std::vector<std::pair<String, String>> & filters)
+{
+    String where;
+
+    for (const auto & [column, value] : filters)
+    {
+        where += fmt::format(R"({}"{}" = '{}')", where.empty() ? " WHERE " : " AND ", column, escapeSQLString(value));
+    }
+    return queryFirstLine(fmt::format(R"(SELECT count() FROM "system"."{}"{})", table, where), true) != "0";
+}
+
 String FuzzConfig::getRandomMutation(const uint64_t rand_val)
 {
     /// The system.mutations table doesn't support sampling, so pick up a random part with a window function

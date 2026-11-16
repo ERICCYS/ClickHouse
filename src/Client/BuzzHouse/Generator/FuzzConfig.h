@@ -490,6 +490,9 @@ public:
 
     bool tableHasPartitions(bool detached, const String & database, const String & table);
 
+    /// Whether the system table has a row with these column values, true when the check itself fails
+    bool systemTableHasRow(const String & table, const std::vector<std::pair<String, String>> & filters);
+
     String tableGetRandomPartitionOrPart(uint64_t rand_val, bool detached, bool partition, const String & database, const String & table);
 
     String tableGetRandomPartitionValue(uint64_t rand_val, const String & database, const String & table);

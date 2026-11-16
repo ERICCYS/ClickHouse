@@ -4129,16 +4129,44 @@ void StatementGenerator::updateGeneratorFromSingleQuery(const SingleSQLQuery & s
         }
         this->staged_dictionaries.erase(dkey);
     }
-    else if (ssq.has_explain() && !ssq.explain().is_explain() && query.has_drop() && success)
+    else if (ssq.has_explain() && !ssq.explain().is_explain() && query.has_drop())
     {
         const Drop & drp = query.drop();
+        /// A failed DROP can still drop objects, e.g. `DROP TABLE t1, t2` drops `t1` before throwing on `t2`, so check the server.
+        /// A timed out `ON CLUSTER` DROP keeps running in the DDL queue, a check can't tell, so forget the objects.
+        /// `IF EMPTY` always runs locally.
+        const bool dropped = success || (drp.has_cluster() && !drp.if_empty());
+        const auto gone = [&](const String & system_table, const std::vector<std::pair<String, String>> & filters)
+        { return dropped || !fc.systemTableHasRow(system_table, filters); };
+        /// `system.tables` doesn't list detached objects. Temporary tables have an empty database there
+        const auto table_gone = [&](const SQLBase & b)
+        { return b.isAttached() ? gone("tables", {{"database", b.is_temp ? "" : b.getDatabaseName()}, {"name", b.getBaseName()}}) : dropped; };
+        /// Temporary tables show up with internal names in the hypothetical system tables, keep their objects
+        const auto hypothetical_gone = [&](const String & system_table, const String & tkey, const String & name)
+        {
+            const SQLTable & t = this->tables.at(tkey);
+
+            return (success || !t.is_temp) && gone(system_table, {{"database", t.getDatabaseName()}, {"table", t.getBaseName()}, {"name", name}});
+        };
 
         if (drp.sobject() == SQLObject::TABLE || drp.sobject() == SQLObject::VIEW || drp.sobject() == SQLObject::DICTIONARY)
         {
+            /// The server drops the list in order and stops at the first failure, so the objects after a surviving one
+            /// were never dropped
+            bool found_survivor = false;
             const auto drop_object = [&](const SQLObjectName & obj)
             {
                 const String key = getNameFromProto(obj.est().table().value());
+                const SQLBase * b = drp.sobject() == SQLObject::TABLE
+                    ? (this->tables.contains(key) ? &this->tables.at(key) : nullptr)
+                    : (drp.sobject() == SQLObject::VIEW ? (this->views.contains(key) ? &this->views.at(key) : nullptr)
+                                                        : (this->dictionaries.contains(key) ? &this->dictionaries.at(key) : nullptr));
 
+                found_survivor = found_survivor || (b && !table_gone(*b));
+                if (found_survivor)
+                {
+                    return;
+                }
                 if (drp.sobject() == SQLObject::TABLE)
                 {
                     dropTable(false, true, key);
@@ -4161,27 +4189,62 @@ void StatementGenerator::updateGeneratorFromSingleQuery(const SingleSQLQuery & s
         }
         else if (drp.sobject() == SQLObject::DATABASE)
         {
-            dropDatabase(getNameFromProto(drp.object().database().value()), true);
+            const String dbkey = getNameFromProto(drp.object().database().value());
+
+            if (gone("databases", {{"name", dbkey}}))
+            {
+                dropDatabase(dbkey, true);
+            }
+            else
+            {
+                /// The database is dropped after its objects, a failure in between drops only some of them
+                const auto in_database_and_gone
+                    = [&](const auto & entry) { return entry.second.db && entry.second.db->name == dbkey && table_gone(entry.second); };
+                std::vector<String> gone_tables;
+
+                for (const auto & entry : this->tables)
+                {
+                    if (in_database_and_gone(entry))
+                    {
+                        gone_tables.emplace_back(entry.first);
+                    }
+                }
+                for (const auto & tkey : gone_tables)
+                {
+                    dropTable(false, true, tkey);
+                }
+                std::erase_if(this->views, in_database_and_gone);
+                std::erase_if(this->dictionaries, in_database_and_gone);
+            }
         }
         else if (drp.sobject() == SQLObject::FUNCTION)
         {
-            this->functions.erase(drp.object().function().value());
+            if (gone("functions", {{"name", drp.object().function().value()}}))
+            {
+                this->functions.erase(drp.object().function().value());
+            }
         }
         else if (drp.sobject() == SQLObject::ROW_POLICY || drp.sobject() == SQLObject::MASKING_POLICY)
         {
-            this->policies.erase(drp.object().policy().value());
+            if (gone(drp.sobject() == SQLObject::ROW_POLICY ? "row_policies" : "masking_policies", {{"short_name", drp.object().policy().value()}}))
+            {
+                this->policies.erase(drp.object().policy().value());
+            }
         }
         else if (drp.sobject() == SQLObject::HYPOTHETICAL_INDEX)
         {
             if (drp.all())
             {
-                clearHypotheticalIndexes();
+                if (gone("hypothetical_indexes", {}))
+                {
+                    clearHypotheticalIndexes();
+                }
             }
             else
             {
                 const String tkey = getNameFromProto(drp.target().table().value());
 
-                if (this->tables.contains(tkey))
+                if (this->tables.contains(tkey) && hypothetical_gone("hypothetical_indexes", tkey, drp.object().index().value()))
                 {
                     this->tables.at(tkey).hypothetical_indexes.erase(drp.object().index().value());
                 }
@@ -4191,13 +4254,16 @@ void StatementGenerator::updateGeneratorFromSingleQuery(const SingleSQLQuery & s
         {
             if (drp.all())
             {
-                clearHypotheticalProjections();
+                if (gone("hypothetical_projections", {}))
+                {
+                    clearHypotheticalProjections();
+                }
             }
             else
             {
                 const String tkey = getNameFromProto(drp.target().table().value());
 
-                if (this->tables.contains(tkey))
+                if (this->tables.contains(tkey) && hypothetical_gone("hypothetical_projections", tkey, drp.object().projection().value()))
                 {
                     this->tables.at(tkey).hypothetical_projections.erase(drp.object().projection().value());
                 }
