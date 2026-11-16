@@ -5332,12 +5332,11 @@ void QueryFuzzer::fuzzExpressionList(ASTExpressionList & expr_list)
         ASTPtr new_child = nullptr;
         static const constexpr int asterisk_prob = 2000;
 
-        /// These lists hold structural nodes, not expressions: replacing one with an expression
-        /// emits text no parser accepts back, and readers cast every element through a throwing
-        /// `as<T &>`. `fuzz(child)` below still mutates them in place.
-        if (!typeid_cast<ASTOrderByElement *>(child.get()) && !typeid_cast<ASTWindowListElement *>(child.get())
-            && !typeid_cast<ASTAssignment *>(child.get()) && !typeid_cast<ASTAlterCommand *>(child.get())
-            && !typeid_cast<ASTWithElement *>(child.get()) && !typeid_cast<ASTInterpolateElement *>(child.get()))
+        /// Replace only expressions. Lists also hold structural nodes (`ORDER BY`/`TTL`/window/`WITH`/`INTERPOLATE`
+        /// elements, assignments, ALTER commands, UNION members, grouping sets): an expression in their place emits
+        /// text no parser accepts back, and readers cast every element through a throwing `as<T &>`.
+        /// `fuzz(child)` below still mutates them in place.
+        if (dynamic_cast<ASTWithAlias *>(child.get()))
         {
             if (auto * /*literal*/ _ = typeid_cast<ASTLiteral *>(child.get()))
             {
@@ -5359,7 +5358,7 @@ void QueryFuzzer::fuzzExpressionList(ASTExpressionList & expr_list)
                 else if (fuzz_rand() % 13 == 0)
                     new_child = fuzzLiteralUnderExpressionList(child);
             }
-            else if (fuzz_rand() % asterisk_prob == 0 && dynamic_cast<ASTWithAlias *>(child.get()))
+            else if (fuzz_rand() % asterisk_prob == 0)
             {
                 /// Return a fuzzed asterisk/matcher: `*`, `* LIKE/ILIKE 'pattern'`, or `table.*`,
                 /// optionally with APPLY/EXCEPT/REPLACE transformers attached.
@@ -5644,11 +5643,13 @@ ASTPtr QueryFuzzer::setIdentifierAliasOrNot(ASTPtr & exp)
                 /// Replace expression with the alias as an identifier
                 return make_intrusive<ASTIdentifier>(Strings{alias});
             }
+            else if (fuzz_rand() % 100 != 0)
+            {
+                /// Mostly drop the alias the node had in its source query: a second expression
+                /// with it gives `MULTIPLE_EXPRESSIONS_FOR_ALIAS`
+                walias->setAlias("");
+            }
         }
-    }
-    else if (fuzz_rand() % 100 != 0)
-    {
-        exp->setAlias("");
     }
     return exp;
 }
@@ -8329,8 +8330,9 @@ void QueryFuzzer::fuzz(ASTPtr & ast)
                 }
                 else
                 {
-                    /// For ROLLUP / CUBE / plain GROUP BY: add or remove one top-level expression
-                    if (!outer->children.empty() && fuzz_rand() % 20 == 0)
+                    /// For ROLLUP / CUBE / plain GROUP BY: add or remove one top-level expression. Keep the last
+                    /// one: an empty list formats as a bare `GROUP BY`, and removing the clause is done above.
+                    if (outer->children.size() > 1 && fuzz_rand() % 20 == 0)
                         outer->children.erase(outer->children.begin() + fuzz_rand() % outer->children.size());
                     if (fuzz_rand() % 20 == 0)
                     {
