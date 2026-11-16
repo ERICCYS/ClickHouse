@@ -128,9 +128,13 @@ echo "--- a parameterized view in a persisted view is not a table function"
 ${CLICKHOUSE_CLIENT} --query "CREATE VIEW pv_05494 AS SELECT {x:UInt64} AS x"
 ${CLICKHOUSE_CLIENT} --query "CREATE TABLE t_view_pv AS view(SELECT * FROM pv_05494(x = 1))"
 ${CLICKHOUSE_CLIENT} --query "EXISTS TABLE t_view_pv"
-# The URL bound by `WITH` is resolved before the nested function is checked.
-${CLICKHOUSE_CLIENT} --query "CREATE TABLE t_view_with AS view(WITH '$redirector' AS u SELECT * FROM url(u, 'LineAsString', 's String'))"
-${CLICKHOUSE_CLIENT} --query "EXISTS TABLE t_view_with"
+# An argument bound by `WITH` cannot be checked as written, so such a target is refused.
+${CLICKHOUSE_CLIENT} --query "CREATE TABLE t_view_with AS view(WITH '$redirector' AS u SELECT * FROM url(u, 'LineAsString', 's String'))" 2>&1 | grep -c -m1 "with its arguments as written"
+# A nested view, and a view over a table that exists only on the remote shard.
+${CLICKHOUSE_CLIENT} --query "CREATE TABLE t_view_nested AS view(SELECT * FROM view(SELECT * FROM numbers(1)))"
+${CLICKHOUSE_CLIENT} --query "EXISTS TABLE t_view_nested"
+${CLICKHOUSE_CLIENT} --query "CREATE TABLE t_view_remote_only (x UInt64) AS remote('127.0.0.1:1', view(SELECT x FROM ${CLICKHOUSE_DATABASE}.remote_only_05494))"
+${CLICKHOUSE_CLIENT} --query "EXISTS TABLE t_view_remote_only"
 
 echo "--- a restored table created AS url needs the grants too"
 backup="Disk('backups', '05494_${CLICKHOUSE_TEST_UNIQUE_NAME}_$$')"
@@ -145,6 +149,6 @@ ${CLICKHOUSE_CLIENT} --max_http_get_redirects 1 --query "SELECT * FROM t_restore
 
 ${CLICKHOUSE_CLIENT} --query "DROP TABLE t_redirect"
 ${CLICKHOUSE_CLIENT} --query "DROP TABLE t_redirect_inferred"
-${CLICKHOUSE_CLIENT} --query "DROP TABLE t_redirect_as_function, t_redirect_as_function_lazy, t_as_function_created, t_remote_src, t_restored, t_view_pv, t_view_with"
+${CLICKHOUSE_CLIENT} --query "DROP TABLE t_redirect_as_function, t_redirect_as_function_lazy, t_as_function_created, t_remote_src, t_restored, t_view_pv, t_view_nested, t_view_remote_only"
 ${CLICKHOUSE_CLIENT} --query "DROP VIEW pv_05494"
 ${CLICKHOUSE_CLIENT} --query "DROP USER $user_filtered, $user_full, $user_engine, $user_table"

@@ -93,10 +93,22 @@ void ITableFunction::checkAccessToCreateTableTarget(const ASTPtr & table_functio
 
     /// A parameterized view is called like a table function in a query; the analyzer resolves it as a view.
     const auto & factory = TableFunctionFactory::instance();
-    if (!factory.isTableFunctionName(table_function_ast->as<ASTFunction &>().name))
+    const auto & name = table_function_ast->as<ASTFunction &>().name;
+    if (!factory.isTableFunctionName(name))
         return;
 
-    factory.get(table_function_ast, context)->checkAccessToCreateTable(context);
+    TableFunctionPtr table_function;
+    try
+    {
+        table_function = factory.get(table_function_ast, context);
+    }
+    catch (Exception & e)
+    {
+        /// An argument that resolves only within its query, e.g. a URL bound by `WITH`, cannot be checked here.
+        e.addMessage("while checking the grants to persist the table function `{}` with its arguments as written", name);
+        throw;
+    }
+    table_function->checkAccessToCreateTable(context);
 }
 
 ColumnsDescription ITableFunction::getActualTableStructureWithAccess(ContextPtr context, bool is_insert_query) const

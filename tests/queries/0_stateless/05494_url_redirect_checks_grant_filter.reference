@@ -42,6 +42,8 @@ Pepyaka
 --- a parameterized view in a persisted view is not a table function
 1
 1
+1
+1
 --- a restored table created AS url needs the grants too
 grant TABLE ENGINE ON URL
 Pepyaka
