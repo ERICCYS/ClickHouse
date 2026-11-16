@@ -1,9 +1,11 @@
 #include <Core/Settings.h>
+#include <Analyzer/InDepthQueryTreeVisitor.h>
+#include <Analyzer/TableFunctionNode.h>
 #include <Interpreters/InterpreterSelectQueryAnalyzer.h>
 #include <Interpreters/Context.h>
+#include <Interpreters/SelectQueryOptions.h>
 #include <Parsers/ASTFunction.h>
 #include <Parsers/ASTSelectWithUnionQuery.h>
-#include <Parsers/ASTTablesInSelectQuery.h>
 #include <Storages/StorageView.h>
 #include <TableFunctions/ITableFunction.h>
 #include <TableFunctions/TableFunctionFactory.h>
@@ -49,22 +51,30 @@ void TableFunctionView::parseArguments(const ASTPtr & ast_function, ContextPtr /
 
 namespace
 {
-    void checkAccessToCreateTableTargets(const IAST & ast, const ContextPtr & context)
+    /// The table functions the analyzer resolved, with their arguments evaluated; a parameterized view is not one.
+    class CheckAccessToCreateTableTargetsVisitor : public ConstInDepthQueryTreeVisitor<CheckAccessToCreateTableTargetsVisitor>
     {
-        if (const auto * table_expression = ast.as<ASTTableExpression>(); table_expression && table_expression->table_function)
+    public:
+        explicit CheckAccessToCreateTableTargetsVisitor(ContextPtr context_) : context(std::move(context_)) {}
+
+        void visitImpl(const QueryTreeNodePtr & node)
         {
-            ITableFunction::checkAccessToCreateTableTarget(table_expression->table_function, context);
-            return;
+            const auto * table_function_node = node->as<TableFunctionNode>();
+            if (table_function_node && !table_function_node->isParameterizedView())
+                table_function_node->getTableFunction()->checkAccessToCreateTable(context);
         }
-        for (const auto & child : ast.children)
-            checkAccessToCreateTableTargets(*child, context);
-    }
+
+    private:
+        ContextPtr context;
+    };
 }
 
 void TableFunctionView::checkAccessToCreateTable(ContextPtr context) const
 {
     /// A carrier may persist the query and run it under another identity, so the table functions it reads are targets too.
-    checkAccessToCreateTableTargets(*create.select, context);
+    InterpreterSelectQueryAnalyzer interpreter(create.children[0], context, SelectQueryOptions().analyze());
+    CheckAccessToCreateTableTargetsVisitor visitor(context);
+    visitor.visit(interpreter.getQueryTree());
 }
 
 ColumnsDescription TableFunctionView::getActualTableStructure(ContextPtr context, bool /*is_insert_query*/) const

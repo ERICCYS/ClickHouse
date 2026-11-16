@@ -4,7 +4,8 @@
 
 # `READ ON URL('regex')` is checked for the URL given to `url`, and also for every redirect target.
 # The test server redirects `/upyachka` to `/?query=SELECT+'Pepyaka'`, and `/upyachka_escaped` to the
-# same query behind an escaped dot segment, `/upyachka/%2e%2e/`.
+# same query behind an escaped dot segment, `/upyachka/%2e%2e/`. `/upyachka_head` answers `HEAD` itself
+# with a `Last-Modified` and redirects only `GET`.
 
 CUR_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../shell_config.sh
@@ -16,6 +17,7 @@ user_engine="user05494_engine_${CLICKHOUSE_DATABASE}_$RANDOM"
 user_table="user05494_table_${CLICKHOUSE_DATABASE}_$RANDOM"
 redirector="http://localhost:${CLICKHOUSE_PORT_HTTP}/upyachka"
 escaped_redirector="http://localhost:${CLICKHOUSE_PORT_HTTP}/upyachka_escaped"
+head_redirector="http://localhost:${CLICKHOUSE_PORT_HTTP}/upyachka_head"
 
 ${CLICKHOUSE_CLIENT} <<EOF
 DROP USER IF EXISTS $user_filtered, $user_full, $user_engine, $user_table;
@@ -68,11 +70,16 @@ check_missing_grant "$user_filtered" "SELECT * FROM urlCluster('test_shard_local
 check_missing_grant "$user_filtered" "SELECT * FROM url('$redirector', 'LineAsString', 's String')" --max_http_get_redirects 1 --cluster_for_parallel_replicas test_shard_localhost --parallel_replicas_for_cluster_engines 1 --enable_parallel_replicas 1 --max_parallel_replicas 2
 ${CLICKHOUSE_CLIENT} --user "$user_full" --max_http_get_redirects 1 --query "SELECT * FROM urlCluster('test_shard_localhost', '$redirector', 'LineAsString', 's String')"
 
-echo "--- a cached schema or count needs a request that checked the redirect"
+echo "--- a filtered grant takes nothing from the caches another user filled"
 ${CLICKHOUSE_CLIENT} --user "$user_full" --max_http_get_redirects 1 --query "DESCRIBE TABLE url('$redirector', 'TSV')" > /dev/null
 ${CLICKHOUSE_CLIENT} --user "$user_full" --max_http_get_redirects 1 --use_cache_for_count_from_files 1 --query "SELECT count() FROM url('$redirector', 'TSV', 's String')"
 check_denied "$user_filtered" "DESCRIBE TABLE url('$redirector', 'TSV')" --http_make_head_request 0 --schema_inference_cache_require_modification_time_for_url 0
 check_denied "$user_filtered" "SELECT count() FROM url('$redirector', 'TSV', 's String')" --http_make_head_request 0 --schema_inference_cache_require_modification_time_for_url 0 --use_cache_for_count_from_files 1
+# A `HEAD` that answers with a modification time says nothing about where the `GET` redirects.
+${CLICKHOUSE_CLIENT} --user "$user_full" --max_http_get_redirects 1 --query "DESCRIBE TABLE url('$head_redirector', 'TSV')" > /dev/null
+${CLICKHOUSE_CLIENT} --user "$user_full" --max_http_get_redirects 1 --use_cache_for_count_from_files 1 --query "SELECT count() FROM url('$head_redirector', 'TSV', 's String')"
+check_denied "$user_filtered" "DESCRIBE TABLE url('$head_redirector', 'TSV')" --schema_inference_cache_require_modification_time_for_url 0
+check_denied "$user_filtered" "SELECT count() FROM url('$head_redirector', 'TSV', 's String')" --schema_inference_cache_require_modification_time_for_url 0 --use_cache_for_count_from_files 1
 
 echo "--- a URL table reads with the grant on the table"
 ${CLICKHOUSE_CLIENT} --user "$user_filtered" --max_http_get_redirects 1 --query "SELECT * FROM t_redirect"
@@ -121,6 +128,9 @@ echo "--- a parameterized view in a persisted view is not a table function"
 ${CLICKHOUSE_CLIENT} --query "CREATE VIEW pv_05494 AS SELECT {x:UInt64} AS x"
 ${CLICKHOUSE_CLIENT} --query "CREATE TABLE t_view_pv AS view(SELECT * FROM pv_05494(x = 1))"
 ${CLICKHOUSE_CLIENT} --query "EXISTS TABLE t_view_pv"
+# The URL bound by `WITH` is resolved before the nested function is checked.
+${CLICKHOUSE_CLIENT} --query "CREATE TABLE t_view_with AS view(WITH '$redirector' AS u SELECT * FROM url(u, 'LineAsString', 's String'))"
+${CLICKHOUSE_CLIENT} --query "EXISTS TABLE t_view_with"
 
 echo "--- a restored table created AS url needs the grants too"
 backup="Disk('backups', '05494_${CLICKHOUSE_TEST_UNIQUE_NAME}_$$')"
@@ -135,6 +145,6 @@ ${CLICKHOUSE_CLIENT} --max_http_get_redirects 1 --query "SELECT * FROM t_restore
 
 ${CLICKHOUSE_CLIENT} --query "DROP TABLE t_redirect"
 ${CLICKHOUSE_CLIENT} --query "DROP TABLE t_redirect_inferred"
-${CLICKHOUSE_CLIENT} --query "DROP TABLE t_redirect_as_function, t_redirect_as_function_lazy, t_as_function_created, t_remote_src, t_restored, t_view_pv"
+${CLICKHOUSE_CLIENT} --query "DROP TABLE t_redirect_as_function, t_redirect_as_function_lazy, t_as_function_created, t_remote_src, t_restored, t_view_pv, t_view_with"
 ${CLICKHOUSE_CLIENT} --query "DROP VIEW pv_05494"
 ${CLICKHOUSE_CLIENT} --query "DROP USER $user_filtered, $user_full, $user_engine, $user_table"

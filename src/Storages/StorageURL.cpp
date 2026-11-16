@@ -170,6 +170,13 @@ namespace
         };
     }
 
+    /// The shared schema and row count caches hold what any user read, possibly behind a redirect that only the
+    /// requests of the caller could check, so a caller with a filtered `READ ON URL` takes nothing from them.
+    bool callerMayUseSharedCache(const ContextPtr & context)
+    {
+        return context->getAccess()->isGranted(AccessType::READ, toStringSource(AccessTypeObjects::Source::URL));
+    }
+
     void checkExperimentalURLWildcardFromIndexPages(const ContextPtr & context)
     {
         if (context->getSettingsRef()[Setting::allow_url_wildcard_from_index_pages])
@@ -1392,12 +1399,12 @@ std::optional<size_t> StorageURLSource::tryGetNumRowsFromCache(const String & ur
     if (!canUseNumRowsFromSchemaCache(format_settings, getContext()))
         return std::nullopt;
 
+    if (check_redirect_access && !callerMayUseSharedCache(getContext()))
+        return std::nullopt;
+
     auto cache_key = getKeyForSchemaCache(uri, format, format_settings, getContext());
     auto get_last_mod_time = [&]() -> std::optional<time_t>
     {
-        /// See `URLReadBufferIterator::tryGetColumnsFromCache`.
-        if (!last_mod_time && check_redirect_access)
-            return std::nullopt;
         /// Some URLs could not have Last-Modified header, in this case we cannot be sure that
         /// data wasn't changed after adding it's schema to cache. Use schema from cache only if
         /// special setting for this case is enabled.
@@ -1804,6 +1811,8 @@ namespace
             auto context = getContext();
             if (!context->getSettingsRef()[Setting::schema_inference_use_cache_for_url])
                 return std::nullopt;
+            if (check_redirect_access && !callerMayUseSharedCache(context))
+                return std::nullopt;
 
             auto & schema_cache = StorageURL::getSchemaCache(getContext());
             for (const auto & url : urls)
@@ -1811,10 +1820,6 @@ namespace
                 auto get_last_mod_time = [&]() -> std::optional<time_t>
                 {
                     auto last_mod_time = StorageURL::tryGetLastModificationTime(url, headers, credentials, context, check_redirect_access);
-                    /// The cache holds what another user may have read behind a redirect, and only a request that
-                    /// reported a modification time proves the redirect was checked for this user.
-                    if (!last_mod_time && check_redirect_access)
-                        return std::nullopt;
                     /// Some URLs could not have Last-Modified header, in this case we cannot be sure that
                     /// data wasn't changed after adding it's schema to cache. Use schema from cache only if
                     /// special setting for this case is enabled.

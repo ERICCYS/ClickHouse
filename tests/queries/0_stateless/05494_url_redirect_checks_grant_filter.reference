@@ -13,7 +13,10 @@ Pepyaka
 grant READ ON URL
 grant READ ON URL
 Pepyaka
---- a cached schema or count needs a request that checked the redirect
+--- a filtered grant takes nothing from the caches another user filled
+1
+1
+1
 1
 1
 1
@@ -37,6 +40,7 @@ grant TABLE ENGINE ON URL
 grant READ ON URL
 Pepyaka
 --- a parameterized view in a persisted view is not a table function
+1
 1
 --- a restored table created AS url needs the grants too
 grant TABLE ENGINE ON URL
