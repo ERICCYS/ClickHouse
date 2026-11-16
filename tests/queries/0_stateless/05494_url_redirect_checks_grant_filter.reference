@@ -2,8 +2,15 @@
 1
 1
 1
+--- an escaped redirect target is checked as the request sends it
+1
+1
 --- the grant without a filter
 Pepyaka
+--- a cached schema or count needs a request that checked the redirect
+1
+1
+1
 --- a URL table reads with the grant on the table
 Pepyaka
 --- a table created AS url reads with the grant on the table only
@@ -21,4 +28,7 @@ grant TABLE ENGINE ON URL
 grant TABLE ENGINE ON URL
 grant TABLE ENGINE ON URL
 grant READ ON URL
+Pepyaka
+--- a restored table created AS url needs the grants too
+grant TABLE ENGINE ON URL
 Pepyaka

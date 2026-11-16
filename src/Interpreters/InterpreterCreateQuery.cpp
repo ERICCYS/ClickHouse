@@ -1341,7 +1341,8 @@ InterpreterCreateQuery::TableProperties InterpreterCreateQuery::getTableProperti
         auto table_function_ast = create.as_table_function->ptr();
         auto table_function = TableFunctionFactory::instance().get(table_function_ast, getContext());
         throwIfTableFunctionCannotBeUsedToCreateTable(table_function_ast, *table_function, getContext());
-        if (!isReplayedTableDefinition(mode, create, getContext()))
+        /// A `RESTORE` introduces the definition under the restoring user, like `ENGINE = URL` treats it.
+        if (!isReplayedTableDefinition(mode, create, getContext()) || is_restore_from_backup)
             table_function->checkAccessToCreateTable(getContext());
 
         /// Classify the table function before inferring the structure from it: the inference opens and
@@ -2961,7 +2962,7 @@ bool InterpreterCreateQuery::doCreateTable(ASTCreateQuery & create,
         /// inferred from the function; a definition with an explicit column list skips that inference and
         /// is checked here.
         throwIfTableFunctionCannotBeUsedToCreateTable(table_function_ast, *table_function, getContext());
-        if (!isReplayedTableDefinition(mode, create, getContext()))
+        if (!isReplayedTableDefinition(mode, create, getContext()) || is_restore_from_backup)
             table_function->checkAccessToCreateTable(getContext());
 
         /// Classify the table function before executing it: with a static structure it returns the final storage
@@ -4161,16 +4162,12 @@ BlockIO InterpreterCreateQuery::execute()
 
             /// The worker builds the table with no user, so the grants to persist a table function target, given
             /// `AS f(...)` or to the `Remote` engine, are checked here: for the definition as written, and below
-            /// for one inherited from `AS src`. A short `ATTACH` replays stored metadata and is not checked.
+            /// for one inherited from `AS src`.
             auto check_access_to_create_table_target = [&](const ASTCreateQuery & query)
             {
-                if (query.as_table_function && !query.attach_short_syntax)
+                if (query.as_table_function)
                     TableFunctionFactory::instance().get(query.as_table_function->ptr(), getContext())->checkAccessToCreateTable(getContext());
-
-                if (query.storage && query.storage->engine && query.storage->engine->arguments
-                    && (query.storage->engine->name == "Remote" || query.storage->engine->name == "RemoteSecure"))
-                    checkAccessToCreateRemoteTableTarget(
-                        query.storage->engine->arguments->children, query.storage->engine->name == "RemoteSecure", getContext());
+                checkAccessToCreateRemoteTableTarget(query, getContext());
             };
             check_access_to_create_table_target(create);
 

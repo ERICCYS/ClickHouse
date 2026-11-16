@@ -313,6 +313,8 @@ private:
     /// see `makeQueryConditionCacheFileKey`. The OpenTelemetry headers added per query are not included.
     UInt128 request_headers_hash;
     bool need_only_count;
+    /// Set when the reads check `READ ON URL` for the redirect targets, see `IStorageURLBase::check_redirect_access`.
+    bool check_redirect_access;
     StorageID storage_id;
     size_t total_rows_in_file = 0;
     NamesAndTypesList hive_partition_columns_to_read_from_file_path;

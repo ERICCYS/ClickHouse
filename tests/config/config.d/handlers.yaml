@@ -5,4 +5,10 @@ http_handlers:
         handler:
             type: redirect
             location: "/?query=SELECT+'Pepyaka'"
+    rule_escaped:
+        url: '/upyachka_escaped'
+        empty_query_string:
+        handler:
+            type: redirect
+            location: "/upyachka/%2e%2e/?query=SELECT+'Pepyaka'"
     defaults:

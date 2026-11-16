@@ -63,6 +63,7 @@
 
 #include <base/EnumReflection.h>
 
+#include <TableFunctions/ITableFunction.h>
 #include <TableFunctions/TableFunctionURL.h>
 
 #include <Formats/SchemaInferenceUtils.h>
@@ -159,14 +160,13 @@ static const std::unordered_set<std::string_view> optional_configuration_keys = 
 
 namespace
 {
-    /// `READ ON URL` is checked for the requested URL, and a redirect must not lead outside of the grant.
+    /// `READ ON URL` is checked for the requested URL, and a redirect must not lead outside of the grant. The target
+    /// is checked as the request sends it, so an escaped or dot segment that the server may resolve is refused.
     ReadWriteBufferFromHTTP::RedirectCallback makeRedirectAccessCheck(const ContextPtr & context)
     {
-        return [access = context->getAccess()](const Poco::URI &, const Poco::URI & redirect_uri)
+        return [context](const Poco::URI &, const Poco::URI & redirect_uri)
         {
-            Poco::URI normalized_uri = redirect_uri;
-            normalized_uri.normalize();
-            access->checkAccessWithFilter(AccessType::READ, toStringSource(AccessTypeObjects::Source::URL), normalized_uri.toString());
+            ITableFunction::checkSourceAccessForURI(context, AccessType::READ, AccessTypeObjects::Source::URL, redirect_uri.toString());
         };
     }
 
@@ -632,6 +632,7 @@ StorageURLSource::StorageURLSource(
     , headers(getHeaders(headers_, context_))
     , request_headers_hash(hashRequestHeaders(headers_))
     , need_only_count(need_only_count_)
+    , check_redirect_access(redirect_callback_ != nullptr)
     , storage_id(std::move(storage_id_))
     , hive_partition_columns_to_read_from_file_path(info.hive_partition_columns_to_read_from_file_path)
     , allow_query_condition_cache((http_method.empty() || http_method == Poco::Net::HTTPRequest::HTTP_GET) && !callback && params.empty())
@@ -1394,6 +1395,9 @@ std::optional<size_t> StorageURLSource::tryGetNumRowsFromCache(const String & ur
     auto cache_key = getKeyForSchemaCache(uri, format, format_settings, getContext());
     auto get_last_mod_time = [&]() -> std::optional<time_t>
     {
+        /// See `URLReadBufferIterator::tryGetColumnsFromCache`.
+        if (!last_mod_time && check_redirect_access)
+            return std::nullopt;
         /// Some URLs could not have Last-Modified header, in this case we cannot be sure that
         /// data wasn't changed after adding it's schema to cache. Use schema from cache only if
         /// special setting for this case is enabled.
@@ -1807,6 +1811,10 @@ namespace
                 auto get_last_mod_time = [&]() -> std::optional<time_t>
                 {
                     auto last_mod_time = StorageURL::tryGetLastModificationTime(url, headers, credentials, context, check_redirect_access);
+                    /// The cache holds what another user may have read behind a redirect, and only a request that
+                    /// reported a modification time proves the redirect was checked for this user.
+                    if (!last_mod_time && check_redirect_access)
+                        return std::nullopt;
                     /// Some URLs could not have Last-Modified header, in this case we cannot be sure that
                     /// data wasn't changed after adding it's schema to cache. Use schema from cache only if
                     /// special setting for this case is enabled.
@@ -2381,7 +2389,7 @@ std::optional<time_t> IStorageURLBase::tryGetLastModificationTime(
 {
     const auto & settings = context->getSettingsRef();
 
-    auto uri = Poco::URI(url);
+    auto uri = Poco::URI(url, settings[Setting::enable_url_encoding]);
 
     auto buf = BuilderRWBufferFromHTTP(uri)
                    .withConnectionGroup(HTTPConnectionGroupType::STORAGE)
@@ -2391,6 +2399,7 @@ std::optional<time_t> IStorageURLBase::tryGetLastModificationTime(
                    .withBufSize(settings[Setting::max_read_buffer_size])
                    .withRedirects(settings[Setting::max_http_get_redirects])
                    .withRedirectCallback(check_redirect_access ? makeRedirectAccessCheck(context) : nullptr)
+                   .withEnableUrlEncoding(settings[Setting::enable_url_encoding])
                    .withHeaders(headers)
                    .create(credentials);
 
