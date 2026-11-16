@@ -100,6 +100,10 @@ public:
     }
 
 protected:
+    /// Whether the caller's `READ ON URL` bounds what the workers of `cluster_name` fetch after a redirect: they run as
+    /// the cluster user unless an interserver secret carries the caller's identity, so a filter bounds nothing there.
+    static bool callerGrantAppliesOnWorkers(const ContextPtr & context, const String & cluster_name);
+
     void parseArguments(const ASTPtr & ast, ContextPtr context) override;
     void parseArgumentsImpl(ASTs & args, const ContextPtr & context) override;
 

@@ -1,6 +1,7 @@
 #include <TableFunctions/TableFunctionURL.h>
 
 #include <Access/Common/AccessFlags.h>
+#include <Access/ContextAccess.h>
 
 #include <TableFunctions/registerTableFunctions.h>
 #include <Analyzer/FunctionNode.h>
@@ -355,6 +356,12 @@ void TableFunctionURL::setPartitionBy(const ASTPtr & partition_by_)
         delegate->setPartitionBy(partition_by_);
 }
 
+bool TableFunctionURL::callerGrantAppliesOnWorkers(const ContextPtr & context, const String & cluster_name)
+{
+    return context->getAccess()->isGranted(AccessType::READ, toStringSource(AccessTypeObjects::Source::URL))
+        || !context->getCluster(cluster_name)->getSecret().empty();
+}
+
 StoragePtr TableFunctionURL::getStorage(
     const String & source, const String & format_, const ColumnsDescription & columns, ContextPtr context,
     const std::string & table_name, const String & compression_method_, bool is_insert_query, bool is_table_definition) const
@@ -373,7 +380,8 @@ StoragePtr TableFunctionURL::getStorage(
     const bool can_use_parallel_replicas = context->canReplaceClusterEngineWithClusterVariant()
         && !is_secondary_query
         && !is_insert_query
-        && !use_web_wildcard;
+        && !use_web_wildcard
+        && callerGrantAppliesOnWorkers(context, parallel_replicas_cluster_name);
 
     if (can_use_parallel_replicas && !context->isSQLSecurityOverriddenBody())
     {

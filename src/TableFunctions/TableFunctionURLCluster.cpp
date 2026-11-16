@@ -9,6 +9,7 @@ namespace DB
 
 namespace ErrorCodes
 {
+    extern const int ACCESS_DENIED;
     extern const int NOT_IMPLEMENTED;
 }
 
@@ -53,6 +54,12 @@ StoragePtr TableFunctionURLCluster::getStorage(
             /*is_replayed_definition=*/ false,
             /*check_redirect_access=*/ !is_table_definition);
     }
+
+    if (!callerGrantAppliesOnWorkers(context, cluster_name))
+        throw Exception(
+            ErrorCodes::ACCESS_DENIED,
+            "Not enough privileges. To execute this query, it's necessary to have the grant READ ON URL without a filter: "
+            "the cluster workers follow redirects as the cluster user");
 
     return std::make_shared<StorageURLCluster>(
         context,

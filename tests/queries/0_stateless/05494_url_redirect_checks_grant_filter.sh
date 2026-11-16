@@ -24,6 +24,7 @@ CREATE USER $user_full;
 CREATE USER $user_engine;
 CREATE USER $user_table;
 GRANT CREATE TEMPORARY TABLE ON *.* TO $user_filtered, $user_full;
+GRANT CLUSTER ON *.* TO $user_filtered, $user_full;
 GRANT READ ON URL('http://localhost:${CLICKHOUSE_PORT_HTTP}/upyachka') TO $user_filtered;
 GRANT READ ON URL('http://localhost:${CLICKHOUSE_PORT_HTTP}/upyachka.*') TO $user_filtered;
 GRANT READ ON URL TO $user_full;
@@ -42,6 +43,11 @@ function check_denied()
     ${CLICKHOUSE_CLIENT} --user "$1" --max_http_get_redirects 1 --query "$2" "${@:3}" 2>&1 | grep -c -m1 "Not enough privileges"
 }
 
+function check_missing_grant()
+{
+    ${CLICKHOUSE_CLIENT} --user "$1" --query "$2" "${@:3}" 2>&1 | grep -o -m1 "grant [A-Z ]* ON URL"
+}
+
 echo "--- the redirect target outside of the grant"
 check_denied "$user_filtered" "SELECT * FROM url('http://localhost:${CLICKHOUSE_PORT_HTTP}/?query=SELECT+1', 'RawBLOB', 's String')"
 check_denied "$user_filtered" "SELECT * FROM url('$redirector', 'RawBLOB', 's String')"
@@ -56,6 +62,11 @@ check_denied "$user_filtered" "SELECT * FROM url('http://localhost:${CLICKHOUSE_
 
 echo "--- the grant without a filter"
 ${CLICKHOUSE_CLIENT} --user "$user_full" --max_http_get_redirects 1 --query "SELECT * FROM url('$redirector', 'LineAsString', 's String')"
+
+echo "--- a cluster read follows redirects as the cluster user"
+check_missing_grant "$user_filtered" "SELECT * FROM urlCluster('test_shard_localhost', '$redirector', 'LineAsString', 's String')" --max_http_get_redirects 1
+check_missing_grant "$user_filtered" "SELECT * FROM url('$redirector', 'LineAsString', 's String')" --max_http_get_redirects 1 --cluster_for_parallel_replicas test_shard_localhost --parallel_replicas_for_cluster_engines 1 --enable_parallel_replicas 1 --max_parallel_replicas 2
+${CLICKHOUSE_CLIENT} --user "$user_full" --max_http_get_redirects 1 --query "SELECT * FROM urlCluster('test_shard_localhost', '$redirector', 'LineAsString', 's String')"
 
 echo "--- a cached schema or count needs a request that checked the redirect"
 ${CLICKHOUSE_CLIENT} --user "$user_full" --max_http_get_redirects 1 --query "DESCRIBE TABLE url('$redirector', 'TSV')" > /dev/null
@@ -78,19 +89,15 @@ ${CLICKHOUSE_CLIENT} --user "$user_engine" --max_http_get_redirects 1 --query "C
 ${CLICKHOUSE_CLIENT} --user "$user_engine" --max_http_get_redirects 1 --query "SELECT * FROM ${CLICKHOUSE_DATABASE}.t_redirect_inferred"
 
 echo "--- a table created AS url needs the grants of a URL table"
-function check_missing_grant()
-{
-    ${CLICKHOUSE_CLIENT} --user "$1" --query "$2" "${@:3}" 2>&1 | grep -o -m1 "grant [A-Z ]* ON URL"
-}
 ${CLICKHOUSE_CLIENT} --query "GRANT CREATE TABLE ON ${CLICKHOUSE_DATABASE}.* TO $user_filtered"
 check_missing_grant "$user_filtered" "CREATE TABLE t_as_function_denied AS url('$redirector', 'LineAsString', 's String')"
 # The legacy `ON CLUSTER` entry format executes the function on the workers with no user.
-${CLICKHOUSE_CLIENT} --query "GRANT CLUSTER ON *.* TO $user_filtered"
 check_missing_grant "$user_filtered" "CREATE TABLE t_as_function_denied ON CLUSTER test_shard_localhost AS url('$redirector', 'LineAsString', 's String')" --distributed_ddl_entry_format_version 2 --distributed_ddl_output_mode throw
 # The shards resolve a target nested in `remote` under the connection's user.
 ${CLICKHOUSE_CLIENT} --query "GRANT REMOTE ON *.* TO $user_filtered"
 check_missing_grant "$user_filtered" "CREATE TABLE t_as_function_denied AS remote('127.0.0.1', url('$redirector', 'LineAsString', 's String'))"
 check_missing_grant "$user_filtered" "CREATE TABLE t_as_function_denied AS remote('127.0.0.1', loop(url('$redirector', 'LineAsString', 's String')))"
+check_missing_grant "$user_filtered" "CREATE TABLE t_as_function_denied AS remote('127.0.0.1', view(SELECT * FROM url('$redirector', 'LineAsString', 's String')))"
 ${CLICKHOUSE_CLIENT} --query "GRANT TABLE ENGINE ON Remote TO $user_filtered"
 check_missing_grant "$user_filtered" "CREATE TABLE t_as_function_denied (s String) ENGINE = Remote('127.0.0.1', url('$redirector', 'LineAsString', 's String'))"
 check_missing_grant "$user_filtered" "CREATE TABLE t_as_function_denied ON CLUSTER test_shard_localhost (s String) ENGINE = Remote('127.0.0.1', url('$redirector', 'LineAsString', 's String'))" --distributed_ddl_entry_format_version 2 --distributed_ddl_output_mode throw

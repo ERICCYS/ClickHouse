@@ -3,6 +3,7 @@
 #include <Interpreters/Context.h>
 #include <Parsers/ASTFunction.h>
 #include <Parsers/ASTSelectWithUnionQuery.h>
+#include <Parsers/ASTTablesInSelectQuery.h>
 #include <Storages/StorageView.h>
 #include <TableFunctions/ITableFunction.h>
 #include <TableFunctions/TableFunctionFactory.h>
@@ -44,6 +45,26 @@ void TableFunctionView::parseArguments(const ASTPtr & ast_function, ContextPtr /
         }
     }
     throw Exception(ErrorCodes::BAD_ARGUMENTS, "Table function '{}' requires a query argument.", getName());
+}
+
+namespace
+{
+    void checkAccessToCreateTableTargets(const IAST & ast, const ContextPtr & context)
+    {
+        if (const auto * table_expression = ast.as<ASTTableExpression>(); table_expression && table_expression->table_function)
+        {
+            ITableFunction::checkAccessToCreateTableTarget(table_expression->table_function, context);
+            return;
+        }
+        for (const auto & child : ast.children)
+            checkAccessToCreateTableTargets(*child, context);
+    }
+}
+
+void TableFunctionView::checkAccessToCreateTable(ContextPtr context) const
+{
+    /// A carrier may persist the query and run it under another identity, so the table functions it reads are targets too.
+    checkAccessToCreateTableTargets(*create.select, context);
 }
 
 ColumnsDescription TableFunctionView::getActualTableStructure(ContextPtr context, bool /*is_insert_query*/) const
