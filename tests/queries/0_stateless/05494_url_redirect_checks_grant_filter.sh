@@ -117,6 +117,11 @@ ${CLICKHOUSE_CLIENT} --user "$user_engine" --query "DETACH TABLE t_as_function_c
 ${CLICKHOUSE_CLIENT} --user "$user_engine" --query "ATTACH TABLE t_as_function_created"
 ${CLICKHOUSE_CLIENT} --user "$user_engine" --max_http_get_redirects 1 --query "SELECT * FROM t_as_function_created"
 
+echo "--- a parameterized view in a persisted view is not a table function"
+${CLICKHOUSE_CLIENT} --query "CREATE VIEW pv_05494 AS SELECT {x:UInt64} AS x"
+${CLICKHOUSE_CLIENT} --query "CREATE TABLE t_view_pv AS view(SELECT * FROM pv_05494(x = 1))"
+${CLICKHOUSE_CLIENT} --query "EXISTS TABLE t_view_pv"
+
 echo "--- a restored table created AS url needs the grants too"
 backup="Disk('backups', '05494_${CLICKHOUSE_TEST_UNIQUE_NAME}_$$')"
 ${CLICKHOUSE_CLIENT} --query "BACKUP TABLE t_redirect_as_function TO $backup FORMAT Null"
@@ -130,5 +135,6 @@ ${CLICKHOUSE_CLIENT} --max_http_get_redirects 1 --query "SELECT * FROM t_restore
 
 ${CLICKHOUSE_CLIENT} --query "DROP TABLE t_redirect"
 ${CLICKHOUSE_CLIENT} --query "DROP TABLE t_redirect_inferred"
-${CLICKHOUSE_CLIENT} --query "DROP TABLE t_redirect_as_function, t_redirect_as_function_lazy, t_as_function_created, t_remote_src, t_restored"
+${CLICKHOUSE_CLIENT} --query "DROP TABLE t_redirect_as_function, t_redirect_as_function_lazy, t_as_function_created, t_remote_src, t_restored, t_view_pv"
+${CLICKHOUSE_CLIENT} --query "DROP VIEW pv_05494"
 ${CLICKHOUSE_CLIENT} --query "DROP USER $user_filtered, $user_full, $user_engine, $user_table"

@@ -1,5 +1,6 @@
 #include <Access/ContextAccess.h>
 #include <TableFunctions/ITableFunction.h>
+#include <Parsers/ASTFunction.h>
 #include <Storages/StorageAlias.h>
 #include <Storages/StorageFactory.h>
 #include <Storages/StorageTableFunction.h>
@@ -87,8 +88,15 @@ void ITableFunction::checkEngineAccess(ContextPtr context) const
 
 void ITableFunction::checkAccessToCreateTableTarget(const ASTPtr & table_function_ast, ContextPtr context)
 {
-    if (table_function_ast)
-        TableFunctionFactory::instance().get(table_function_ast, context)->checkAccessToCreateTable(context);
+    if (!table_function_ast)
+        return;
+
+    /// A parameterized view is called like a table function in a query; the analyzer resolves it as a view.
+    const auto & factory = TableFunctionFactory::instance();
+    if (!factory.isTableFunctionName(table_function_ast->as<ASTFunction &>().name))
+        return;
+
+    factory.get(table_function_ast, context)->checkAccessToCreateTable(context);
 }
 
 ColumnsDescription ITableFunction::getActualTableStructureWithAccess(ContextPtr context, bool is_insert_query) const
