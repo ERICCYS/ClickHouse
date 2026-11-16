@@ -4157,10 +4157,20 @@ void StatementGenerator::updateGeneratorFromSingleQuery(const SingleSQLQuery & s
             const auto drop_object = [&](const SQLObjectName & obj)
             {
                 const String key = getNameFromProto(obj.est().table().value());
-                const SQLBase * b = drp.sobject() == SQLObject::TABLE
-                    ? (this->tables.contains(key) ? &this->tables.at(key) : nullptr)
-                    : (drp.sobject() == SQLObject::VIEW ? (this->views.contains(key) ? &this->views.at(key) : nullptr)
-                                                        : (this->dictionaries.contains(key) ? &this->dictionaries.at(key) : nullptr));
+                const SQLBase * b = nullptr;
+
+                if (drp.sobject() == SQLObject::TABLE && this->tables.contains(key))
+                {
+                    b = &this->tables.at(key);
+                }
+                else if (drp.sobject() == SQLObject::VIEW && this->views.contains(key))
+                {
+                    b = &this->views.at(key);
+                }
+                else if (drp.sobject() == SQLObject::DICTIONARY && this->dictionaries.contains(key))
+                {
+                    b = &this->dictionaries.at(key);
+                }
 
                 found_survivor = found_survivor || (b && !table_gone(*b));
                 if (found_survivor)
