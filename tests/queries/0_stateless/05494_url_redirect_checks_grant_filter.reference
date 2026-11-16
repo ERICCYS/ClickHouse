@@ -5,6 +5,8 @@
 --- an escaped redirect target is checked as the request sends it
 1
 1
+--- a wildcard expanded from index pages needs the grant on the whole source
+1
 --- the grant without a filter
 Pepyaka
 --- a cached schema or count needs a request that checked the redirect

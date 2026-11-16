@@ -1,5 +1,7 @@
 #include <TableFunctions/TableFunctionURL.h>
 
+#include <Access/Common/AccessFlags.h>
+
 #include <TableFunctions/registerTableFunctions.h>
 #include <Analyzer/FunctionNode.h>
 #include <Analyzer/TableFunctionNode.h>
@@ -53,6 +55,13 @@ namespace
             ErrorCodes::SUPPORT_IS_DISABLED,
             "Wildcard expansion for `url` from HTTP index pages is experimental. "
             "Set `allow_url_wildcard_from_index_pages = 1` to enable it");
+    }
+
+    /// The web object storage behind the index pages follows redirects without the per-hop check of `StorageURL`,
+    /// so a filtered `READ ON URL` cannot bound them: the path needs the grant on the whole source.
+    void checkWholeSourceAccessForURLWildcard(const ContextPtr & context)
+    {
+        context->checkAccess(AccessType::READ, toStringSource(AccessTypeObjects::Source::URL));
     }
 
     ASTs makeWebObjectStorageEngineArgs(
@@ -383,6 +392,7 @@ StoragePtr TableFunctionURL::getStorage(
     if (use_web_wildcard)
     {
         checkExperimentalURLWildcardFromIndexPages(context);
+        checkWholeSourceAccessForURLWildcard(context);
         auto object_storage_configuration = std::make_shared<StorageWebConfiguration>();
 
         auto engine_args = makeWebObjectStorageEngineArgs(source, format_, structure, compression_method_, configuration.headers);
@@ -451,6 +461,7 @@ ColumnsDescription TableFunctionURL::getActualTableStructure(ContextPtr context,
         if (configuration.http_method.empty() && urlPathHasListableGlobs(filename))
         {
             checkExperimentalURLWildcardFromIndexPages(context);
+            checkWholeSourceAccessForURLWildcard(context);
 
             auto object_storage_configuration = std::make_shared<StorageWebConfiguration>();
             auto engine_args = makeWebObjectStorageEngineArgs(filename, format, structure, compression_method, configuration.headers);

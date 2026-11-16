@@ -51,6 +51,9 @@ echo "--- an escaped redirect target is checked as the request sends it"
 check_denied "$user_filtered" "SELECT * FROM url('$escaped_redirector', 'RawBLOB', 's String')" --enable_url_encoding 0 --http_make_head_request 0
 check_denied "$user_filtered" "SELECT * FROM url('$escaped_redirector', 'RawBLOB', 's String')" --enable_url_encoding 1 --http_make_head_request 0
 
+echo "--- a wildcard expanded from index pages needs the grant on the whole source"
+check_denied "$user_filtered" "SELECT * FROM url('http://localhost:${CLICKHOUSE_PORT_HTTP}/upyachka*', 'RawBLOB', 's String')" --allow_url_wildcard_from_index_pages 1
+
 echo "--- the grant without a filter"
 ${CLICKHOUSE_CLIENT} --user "$user_full" --max_http_get_redirects 1 --query "SELECT * FROM url('$redirector', 'LineAsString', 's String')"
 
