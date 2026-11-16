@@ -1236,6 +1236,125 @@ void StatementGenerator::setRandomShardKey(RandomGenerator & rg, const std::opti
     }
 }
 
+/// Runs `fn` with the shared scratch lists set aside, for a caller that is iterating one of them
+void StatementGenerator::withoutScratchLists(const std::function<void()> & fn)
+{
+    std::vector<uint32_t> ids_backup;
+    std::vector<ColumnPathChain> entries_backup;
+    std::vector<ColumnPathChain> table_entries_backup;
+    std::vector<ColumnPathChain> remote_entries_backup;
+    std::vector<std::reference_wrapper<const ColumnPathChain>> filtered_entries_backup;
+    const auto swap_scratch_lists = [&]
+    {
+        std::swap(ids_backup, this->ids);
+        std::swap(entries_backup, this->entries);
+        std::swap(table_entries_backup, this->table_entries);
+        std::swap(remote_entries_backup, this->remote_entries);
+        std::swap(filtered_entries_backup, this->filtered_entries);
+    };
+
+    swap_scratch_lists();
+    fn();
+    swap_scratch_lists();
+}
+
+/// The default expression of a column: an expression over the columns of the table
+void StatementGenerator::generateDefaultExpression(RandomGenerator & rg, const SQLTable & t, const bool allow_internal_cols, Expr * expr)
+{
+    std::optional<SQLRelation> rel = std::make_optional<SQLRelation>(createTableRelation(rg, allow_internal_cols, "", t));
+
+    generateTableExpression(rg, rel, false, rg.nextMediumNumber() < 16, expr);
+}
+
+/// A default modifier with the expression `gen` makes. EPHEMERAL has one only sometimes
+void StatementGenerator::generateDefaultModifier(
+    RandomGenerator & rg, const DModifier dmod, DefaultModifier * def_value, const std::function<void(Expr *)> & gen)
+{
+    def_value->set_dvalue(dmod);
+    if (dmod != DModifier::DEF_EPHEMERAL || rg.nextMediumNumber() < 21)
+    {
+        gen(def_value->mutable_expr());
+    }
+}
+
+/// The type of a column in the structure of a table function, sometimes followed by the clauses a column of
+/// CREATE TABLE takes, as the structure has the same syntax. Only the type when the structure has to be exact.
+/// `nested`: the column is an array of `tp`. `any_modifier`: the table function takes every default modifier.
+String StatementGenerator::nextStructureColumnType(
+    RandomGenerator & rg, SQLType * tp, const String & type_name, const SQLTable * t, const bool nested, const bool any_modifier)
+{
+    if (!this->allow_not_deterministic || rg.nextMediumNumber() > 15)
+    {
+        return type_name;
+    }
+    ColumnDef cd;
+    bool has_type = true;
+
+    /// The callers are iterating the scratch lists the expression generators use
+    withoutScratchLists(
+        [&]
+        {
+            if (rg.nextSmallNumber() < 7)
+            {
+                /// Most table functions accept DEFAULT only, and reject MATERIALIZED, ALIAS and EPHEMERAL after parsing them
+                DefaultModifier * def_value = cd.mutable_defaultv();
+                std::uniform_int_distribution<uint32_t> dmod_range(1, static_cast<uint32_t>(DModifier_MAX));
+                const DModifier dmod = (!any_modifier && rg.nextSmallNumber() < 8) ? DModifier::DEF_DEFAULT
+                                                                                 : static_cast<DModifier>(dmod_range(rg.generator));
+
+                generateDefaultModifier(
+                    rg,
+                    dmod,
+                    def_value,
+                    [&](Expr * expr)
+                    {
+                        if (!t || rg.nextSmallNumber() < 6)
+                        {
+                            /// A constant of the column type
+                            const String value = tp->appendRandomRawValue(rg, *this);
+
+                            expr->mutable_lit_val()->set_no_quote_str(nested ? ("[" + value + "]") : value);
+                        }
+                        else
+                        {
+                            generateDefaultExpression(rg, *t, false, expr);
+                        }
+                    });
+                /// With an expression the type is optional, it is then taken from the expression
+                has_type = !def_value->has_expr() || dmod == DModifier::DEF_EPHEMERAL || rg.nextSmallNumber() > 2;
+            }
+            if (rg.nextSmallNumber() < 3)
+            {
+                cd.set_comment(nextComment(rg));
+            }
+            if (rg.nextSmallNumber() < 3)
+            {
+                cd.set_codecs(generateNextCodecStringForType(rg, tp));
+            }
+            if (rg.nextSmallNumber() < 3)
+            {
+                generateNextStatistics(rg, cd.mutable_stats());
+            }
+            if (t && rg.nextSmallNumber() < 3)
+            {
+                flatTableColumnPath(flat_tuple | flat_nested, t->cols, [](const SQLColumn &) { return true; });
+                generateTTLExpression(rg, std::make_optional<SQLTable>(*t), cd.mutable_ttl_expr());
+                this->entries.clear();
+            }
+            cd.set_is_pkey(rg.nextMediumNumber() < 6);
+            if (rg.nextSmallNumber() < 3)
+            {
+                /// The column settings of MergeTree, others have none
+                generateSettingValues(rg, allColumnSettings.at(TableEngineValues::MergeTree), cd.mutable_setting_values());
+            }
+        });
+
+    String buf = has_type ? type_name : "";
+    SQLColumnDefClausesToString(buf, cd);
+    /// Without a type, drop the space before the first clause
+    return has_type ? buf : buf.substr(1);
+}
+
 /// The structure of the table for a table function reading or writing `path`. For a hive path, the
 /// `key=value` partition keys are sometimes declared too, with random types that may not fit the values in it.
 String StatementGenerator::getTableStructure(RandomGenerator & rg, const SQLTable & t, const String & path, const bool escape)
@@ -1257,12 +1376,11 @@ String StatementGenerator::getTableStructure(RandomGenerator & rg, const SQLTabl
     }
     for (const auto & entry : this->remote_entries)
     {
+        const String type_name = entry.getBottomType()->typeName(escape, false)
+            + (entry.nullable.has_value() ? (entry.nullable.value() ? " NULL" : " NOT NULL") : "");
+
         buf += fmt::format(
-            "{}{} {}{}",
-            first ? "" : ", ",
-            entry.getBottomNameSQL(),
-            entry.getBottomType()->typeName(escape, false),
-            entry.nullable.has_value() ? (entry.nullable.value() ? " NULL" : " NOT NULL") : "");
+            "{}{} {}", first ? "" : ", ", entry.getBottomNameSQL(), nextStructureColumnType(rg, entry.getBottomType(), type_name, &t, false, false));
         first = false;
     }
     this->remote_entries.clear();
@@ -2016,14 +2134,8 @@ void StatementGenerator::addTableColumnInternal(
             {
                 dmod = DModifier::DEF_DEFAULT;
             }
-            def_value->set_dvalue(dmod);
             col.dmod = std::optional<DModifier>(dmod);
-            if (dmod != DModifier::DEF_EPHEMERAL || rg.nextMediumNumber() < 21)
-            {
-                std::optional<SQLRelation> rel = std::make_optional<SQLRelation>(createTableRelation(rg, true, "", t));
-
-                generateTableExpression(rg, rel, false, rg.nextMediumNumber() < 16, def_value->mutable_expr());
-            }
+            generateDefaultModifier(rg, dmod, def_value, [&](Expr * expr) { generateDefaultExpression(rg, t, true, expr); });
         }
         if ((t.isMergeTreeFamily() || rg.nextLargeNumber() < 4))
         {

@@ -40,6 +40,8 @@
 #include <Parsers/ASTCheckQuery.h>
 #include <Parsers/ASTCodecDeclaration.h>
 #include <Parsers/ASTColumnDeclaration.h>
+#include <Parsers/ParserSetQuery.h>
+#include <Parsers/ExpressionElementParsers.h>
 #include <Parsers/ASTColumnsMatcher.h>
 #include <Parsers/ASTColumnsTransformers.h>
 #include <Parsers/ASTConstraintDeclaration.h>
@@ -2914,9 +2916,9 @@ static const Strings & statTypes()
     return stat_types;
 }
 
-void QueryFuzzer::fuzzCodecFunction(ASTFunction & codec_fn)
+void QueryFuzzer::fuzzCodecFunction(ASTFunction & codec_fn, bool always)
 {
-    if (codec_fn.name != "CODEC" || !codec_fn.arguments || fuzz_rand() % 5 != 0)
+    if (codec_fn.name != "CODEC" || !codec_fn.arguments || (!always && fuzz_rand() % 5 != 0))
         return;
 
     codec_fn.arguments->children.clear();
@@ -3074,6 +3076,18 @@ void QueryFuzzer::fuzzCodecFunction(ASTFunction & codec_fn)
 
 void QueryFuzzer::fuzzColumnDeclaration(ASTColumnDeclaration & column)
 {
+    const auto parse_clause = [](IParser & parser, const String & text)
+    {
+        return parseQuery(parser, text, DBMS_DEFAULT_MAX_QUERY_SIZE, DBMS_DEFAULT_MAX_PARSER_DEPTH, DBMS_DEFAULT_MAX_PARSER_BACKTRACKS);
+    };
+
+    /// A column that takes its type from the default expression gets an explicit one, which may not match it
+    if (!column.getType() && fuzz_rand() % 30 == 0)
+    {
+        ParserDataType parser;
+        column.setType(parse_clause(parser, getRandomType()->getName()));
+    }
+
     if (auto type = column.getType())
     {
         auto data_type = fuzzDataType(DataTypeFactory::instance().get(type));
@@ -3100,6 +3114,63 @@ void QueryFuzzer::fuzzColumnDeclaration(ASTColumnDeclaration & column)
         if (auto * codec_fn = codec->as<ASTFunction>())
             fuzzCodecFunction(*codec_fn);
 
+    /// Give a column one of the clauses it does not have, so a table or a table function structure without them gets them too
+    if (column.getType() && fuzz_rand() % 30 == 0)
+    {
+        switch (fuzz_rand() % 5)
+        {
+            case 0:
+                if (!column.getComment())
+                    column.setComment(make_intrusive<ASTLiteral>(getRandomField(2)));
+                break;
+            case 1:
+                if (!column.getCodec())
+                {
+                    /// An empty declaration from the parser, filled with a random codec
+                    ParserCodec parser;
+                    auto codec = parse_clause(parser, "(NONE)");
+                    fuzzCodecFunction(codec->as<ASTFunction &>(), /*always=*/ true);
+                    column.setCodec(std::move(codec));
+                }
+                break;
+            case 2:
+                if (!column.getStatisticsDesc())
+                {
+                    ParserStatisticsType parser;
+                    column.setStatisticsDesc(parse_clause(parser, "(" + pickRandomly(fuzz_rand, statTypes()) + ")"));
+                }
+                break;
+            case 3:
+                if (!column.getTTL())
+                    column.setTTL(makeASTFunction("plus", makeASTFunction("now"), make_intrusive<ASTLiteral>(getRandomField(0))));
+                break;
+            default:
+                if (!column.getSettings())
+                {
+                    static const Strings settings = {"max_compress_block_size = 1000", "min_compress_block_size = 1"};
+                    ParserSetQuery parser(/* parse_only_internals_ = */ true, /* shorthand_syntax_ = */ false);
+                    column.setSettings(parse_clause(parser, pickRandomly(fuzz_rand, settings)));
+                }
+                break;
+        }
+    }
+
+    /// Drop the default of a column. It has a type, so the declaration stays valid
+    if (column.getType() && column.getDefaultExpression() && column.default_specifier != ColumnDefaultSpecifier::AutoIncrement
+        && fuzz_rand() % 30 == 0)
+    {
+        column.resetDefaultExpression();
+        column.default_specifier = ColumnDefaultSpecifier::Empty;
+        column.ephemeral_default = false;
+    }
+    /// Give a column without a default one, so a table or a table function structure that has none gets them too
+    else if (column.default_specifier == ColumnDefaultSpecifier::Empty && column.getType() && !column.getDefaultExpression()
+        && fuzz_rand() % 30 == 0)
+    {
+        column.default_specifier = ColumnDefaultSpecifier::Default;
+        column.setDefaultExpression(make_intrusive<ASTLiteral>(getRandomField(fuzz_rand() % 11)));
+    }
+
     if (column.default_specifier != ColumnDefaultSpecifier::Empty && column.default_specifier != ColumnDefaultSpecifier::AutoIncrement
         && column.getDefaultExpression() && fuzz_rand() % 5 == 0)
     {
@@ -3115,8 +3186,8 @@ void QueryFuzzer::fuzzColumnDeclaration(ASTColumnDeclaration & column)
         }
     }
 
-    /// Toggle NULL / NOT NULL modifier
-    if (fuzz_rand() % 20 == 0)
+    /// Toggle NULL / NOT NULL modifier. It is written after the type, so a column without one keeps it as it is
+    if (column.getType() && fuzz_rand() % 20 == 0)
     {
         if (!column.null_modifier.has_value())
             column.null_modifier = (fuzz_rand() % 2 == 0);
@@ -3125,6 +3196,14 @@ void QueryFuzzer::fuzzColumnDeclaration(ASTColumnDeclaration & column)
         else
             column.null_modifier = !*column.null_modifier;
     }
+
+    /// The type is optional with a default expression: drop it, so it is taken from the expression.
+    /// Not with the clauses that are written right after the type
+    if (column.getType() && column.getDefaultExpression() && !column.null_modifier.has_value() && !column.getCollation()
+        && (column.default_specifier == ColumnDefaultSpecifier::Default || column.default_specifier == ColumnDefaultSpecifier::Materialized
+            || column.default_specifier == ColumnDefaultSpecifier::Alias)
+        && fuzz_rand() % 30 == 0)
+        column.resetType();
 
     /// Toggle inline PRIMARY KEY specifier (column-level PRIMARY KEY declaration)
     if (fuzz_rand() % 50 == 0)
@@ -4315,7 +4394,7 @@ void QueryFuzzer::fuzzDictionarySource(ASTFunctionWithKeyValueArguments & source
     }
 }
 
-/// Change the type of one column of a `structure` argument, so the data is read with a schema it was not written
+/// Fuzz the columns of a `structure` argument: their types, defaults and other clauses, so the data is read with a schema it was not written
 /// with. Returns an empty string when the argument does not parse as a column list.
 String QueryFuzzer::fuzzStructure(const String & structure)
 {
@@ -4337,10 +4416,15 @@ String QueryFuzzer::fuzzStructure(const String & structure)
     auto * columns = list ? list->as<ASTExpressionList>() : nullptr;
     if (!columns || columns->children.empty())
         return {};
-    auto * column = columns->children[fuzz_rand() % columns->children.size()]->as<ASTColumnDeclaration>();
-    if (!column || !column->getType() || !DataTypeFactory::instance().tryGet(column->getType()))
-        return {};
-    fuzzColumnDeclaration(*column);
+    for (auto & column_ast : columns->children)
+    {
+        auto * column = column_ast->as<ASTColumnDeclaration>();
+        /// A column without a type has a default expression, which is fuzzed below
+        if (!column || (column->getType() && !DataTypeFactory::instance().tryGet(column->getType())))
+            return {};
+    }
+    /// As for the columns of CREATE TABLE: fuzz every column, with its default expression and other clauses
+    fuzzColumnDeclarationList(*columns);
     return columns->formatWithSecretsOneLine();
 }
 

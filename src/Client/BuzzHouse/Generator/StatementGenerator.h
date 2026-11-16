@@ -727,6 +727,11 @@ private:
     void generateWherePredicate(RandomGenerator & rg, Expr * expr);
     void addJoinClause(RandomGenerator & rg, Expr * expr);
     void generateArrayJoin(RandomGenerator & rg, ArrayJoin * aj);
+    void withoutScratchLists(const std::function<void()> & fn);
+    void generateDefaultExpression(RandomGenerator & rg, const SQLTable & t, bool allow_internal_cols, Expr * expr);
+    void generateDefaultModifier(RandomGenerator & rg, DModifier dmod, DefaultModifier * def_value, const std::function<void(Expr *)> & gen);
+    String nextStructureColumnType(
+        RandomGenerator & rg, SQLType * tp, const String & type_name, const SQLTable * t, bool nested, bool any_modifier);
     String getTableStructure(RandomGenerator & rg, const SQLTable & t, const String & path, bool escape);
     void setTableFunction(RandomGenerator & rg, TableFunctionUsage usage, const SQLTable & t, TableFunction * tfunc);
     String getNextTestingAddress(RandomGenerator & rg, bool secure) const;

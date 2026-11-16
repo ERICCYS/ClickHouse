@@ -1295,13 +1295,16 @@ bool StatementGenerator::tableOrFunctionRef(
                   for (const auto & entry : this->entries)
                   {
                       sql += fmt::format("{}{}", first ? "" : ",", entry.columnPathRef());
+                      /// The type of a nested column is wrapped in an array
+                      const bool nested = entry.path.size() > 1;
+                      const String bottom_name = entry.getBottomType()->typeName(false, false);
+                      const String type_name = nested ? ("Array(" + bottom_name + ")") : bottom_name;
+
                       buf += fmt::format(
-                          "{}{} {}{}{}",
+                          "{}{} {}",
                           first ? "" : ", ",
                           entry.getBottomNameSQL(),
-                          entry.path.size() > 1 ? "Array(" : "",
-                          entry.getBottomType()->typeName(false, false),
-                          entry.path.size() > 1 ? ")" : "");
+                          nextStructureColumnType(rg, entry.getBottomType(), type_name, &t, nested, false));
                       first = false;
                   }
                   sql += ")";

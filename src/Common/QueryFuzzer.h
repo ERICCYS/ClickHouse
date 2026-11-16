@@ -336,7 +336,7 @@ private:
     void fuzzExplainQuery(ASTExplainQuery & explain);
     ASTExplainQuery::ExplainKind fuzzExplainKind(ASTExplainQuery::ExplainKind kind = ASTExplainQuery::ExplainKind::QueryPipeline);
     void fuzzExplainSettings(ASTSetQuery & settings_ast, ASTExplainQuery::ExplainKind kind);
-    void fuzzCodecFunction(ASTFunction & codec_fn);
+    void fuzzCodecFunction(ASTFunction & codec_fn, bool always = false);
     void fuzzColumnDeclaration(ASTColumnDeclaration & column);
     void fuzzColumnDeclarationList(ASTExpressionList & columns);
     /// The `CODEC <path> (...)` entries of a column list, added to a list that has none.

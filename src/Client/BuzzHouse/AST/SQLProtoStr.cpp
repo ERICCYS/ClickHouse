@@ -2890,16 +2890,9 @@ CONV_FN(DefaultModifier, def_mod)
     }
 }
 
-CONV_FN(ColumnDef, cdf)
+/// The clauses of a column definition after its name, type and nullability
+static void ColumnDefClausesToString(String & ret, const ColumnDef & cdf)
 {
-    ColumnPathToString(ret, 0, cdf.col());
-    ret += " ";
-    TypeNameToString(ret, 0, cdf.type());
-    if (cdf.has_nullable())
-    {
-        ret += cdf.nullable() ? "" : " NOT";
-        ret += " NULL";
-    }
     if (cdf.has_defaultv())
     {
         ret += " ";
@@ -2937,6 +2930,19 @@ CONV_FN(ColumnDef, cdf)
         SettingValuesToString(ret, cdf.setting_values());
         ret += ")";
     }
+}
+
+CONV_FN(ColumnDef, cdf)
+{
+    ColumnPathToString(ret, 0, cdf.col());
+    ret += " ";
+    TypeNameToString(ret, 0, cdf.type());
+    if (cdf.has_nullable())
+    {
+        ret += cdf.nullable() ? "" : " NOT";
+        ret += " NULL";
+    }
+    ColumnDefClausesToString(ret, cdf);
 }
 
 /// The `TYPE type(params) [GRANULARITY n]` tail shared by table indexes and hypothetical indexes
@@ -5514,6 +5520,11 @@ CONV_FN(SingleSQLQuery, query)
         case QueryType::kRollbackTrans: ret += "ROLLBACK"; break;
         default: ret += "SELECT 1";
     }
+}
+
+void SQLColumnDefClausesToString(String & ret, const ColumnDef & cdf)
+{
+    ColumnDefClausesToString(ret, cdf);
 }
 
 void SQLExprToString(String & ret, const Expr & expr)
