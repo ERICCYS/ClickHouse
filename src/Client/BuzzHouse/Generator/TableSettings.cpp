@@ -1050,7 +1050,7 @@ static std::unordered_map<String, CHSetting> kafkaTableSettings
     = {{"kafka_schema_registry_skip_bytes",
         CHSetting([](RandomGenerator & rg, FuzzConfig &) { return std::to_string(rg.randomInt<uint32_t>(0, 512)); }, {}, false)},
        {"kafka_num_consumers",
-        CHSetting([](RandomGenerator & rg, FuzzConfig &) { return std::to_string(rg.randomInt<uint32_t>(0, 32)); }, {}, false)},
+        CHSetting([](RandomGenerator & rg, FuzzConfig &) { return std::to_string(rg.randomInt<uint32_t>(1, 32)); }, {}, false)},
        {"kafka_max_block_size", CHSetting(highRange, {}, false)},
        {"kafka_skip_broken_messages", CHSetting(highRange, {}, false)},
        {"kafka_commit_every_batch", trueOrFalseSetting},
@@ -1068,7 +1068,7 @@ static std::unordered_map<String, CHSetting> kafkaTableSettings
             {"'default'", "'stream'", "'dead_letter_queue'"},
             false)},
        {"kafka_commit_on_select", trueOrFalseSetting},
-       {"kafka_max_rows_per_message", CHSetting(rowsRange, {}, false)},
+       {"kafka_max_rows_per_message", CHSetting(rowsRangeNonZero, {}, false)},
        {"kafka_compression_codec",
         CHSetting(
             [](RandomGenerator & rg, FuzzConfig &)
@@ -1100,9 +1100,9 @@ static std::unordered_map<String, CHSetting> rabbitMQTableSettings
             {"'direct'", "'fanout'", "'topic'", "'headers'"},
             false)},
        {"rabbitmq_num_consumers",
-        CHSetting([](RandomGenerator & rg, FuzzConfig &) { return std::to_string(rg.randomInt<uint32_t>(0, 8)); }, {}, false)},
+        CHSetting([](RandomGenerator & rg, FuzzConfig &) { return std::to_string(rg.randomInt<uint32_t>(1, 8)); }, {}, false)},
        {"rabbitmq_num_queues",
-        CHSetting([](RandomGenerator & rg, FuzzConfig &) { return std::to_string(rg.randomInt<uint32_t>(0, 8)); }, {}, false)},
+        CHSetting([](RandomGenerator & rg, FuzzConfig &) { return std::to_string(rg.randomInt<uint32_t>(1, 8)); }, {}, false)},
        {"rabbitmq_persistent", trueOrFalseSetting},
        {"rabbitmq_queue_settings_list",
         CHSetting(
@@ -1133,7 +1133,7 @@ static std::unordered_map<String, CHSetting> rabbitMQTableSettings
        {"rabbitmq_skip_broken_messages", CHSetting(highRange, {}, false)},
        {"rabbitmq_max_block_size", CHSetting(highRange, {}, false)},
        {"rabbitmq_commit_on_select", trueOrFalseSetting},
-       {"rabbitmq_max_rows_per_message", CHSetting(rowsRange, {}, false)},
+       {"rabbitmq_max_rows_per_message", CHSetting(rowsRangeNonZero, {}, false)},
        {"rabbitmq_handle_error_mode",
         CHSetting(
             [](RandomGenerator & rg, FuzzConfig &)
@@ -1148,7 +1148,7 @@ static std::unordered_map<String, CHSetting> natsTableSettings
     = {{"nats_flush_interval_ms", CHSetting(highRange, {}, false)},
        {"nats_secure", trueOrFalseSetting},
        {"nats_num_consumers",
-        CHSetting([](RandomGenerator & rg, FuzzConfig &) { return std::to_string(rg.randomInt<uint32_t>(0, 8)); }, {}, false)},
+        CHSetting([](RandomGenerator & rg, FuzzConfig &) { return std::to_string(rg.randomInt<uint32_t>(1, 8)); }, {}, false)},
        {"nats_queue_group",
         CHSetting(
             [](RandomGenerator & rg, FuzzConfig &)
@@ -1161,7 +1161,7 @@ static std::unordered_map<String, CHSetting> natsTableSettings
        {"nats_skip_broken_messages", CHSetting(highRange, {}, false)},
        {"nats_max_block_size", CHSetting(highRange, {}, false)},
        {"nats_commit_on_select", trueOrFalseSetting},
-       {"nats_max_rows_per_message", CHSetting(rowsRange, {}, false)},
+       {"nats_max_rows_per_message", CHSetting(rowsRangeNonZero, {}, false)},
        {"nats_handle_error_mode",
         CHSetting(
             [](RandomGenerator & rg, FuzzConfig &)

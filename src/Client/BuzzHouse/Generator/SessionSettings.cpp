@@ -3068,7 +3068,7 @@ void loadFuzzerServerSettings(const FuzzConfig & fc)
          {"input_format_with_types_use_header", trueOrFalseSettingNoOracle},
          {"low_cardinality_allow_in_native_format", trueOrFalseSettingNoOracle},
          {"output_format_avro_confluent_subject", CHSetting(nastyStrings, {}, false)},
-         {"output_format_avro_rows_in_file", CHSetting(rowsRange, {}, false)},
+         {"output_format_avro_rows_in_file", CHSetting(rowsRangeNonZero, {}, false)},
          {"output_format_arrow_date_as_uint16", trueOrFalseSettingNoOracle},
          {"output_format_orc_dictionary_key_size_threshold",
           CHSetting(
