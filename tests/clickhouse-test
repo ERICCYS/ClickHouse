@@ -2585,6 +2585,21 @@ class SettingsRandomizer:
             random_settings[setting] = random_settings[other_setting]
         # No clamp for DPsub: it bails at DPSUB_MAX_RELATIONS (12) before allocating its 2^n table, so a large
         # or zero limit cannot blow up memory; keeping limit=0 lets the "reordering disabled" draw be exercised.
+        # Context::getReadSettings validates the ReaderExecutor sizes even when the executor is off, and requires
+        # plan_look_ahead >= 2 * window_size (and >= block_size), all within [128 KiB, 40 MiB]. The independent
+        # draws can violate the 2x rule, so cap the window so twice it fits the 40 MiB ceiling, then raise
+        # plan_look_ahead to meet both bounds.
+        reader_executor_max = 40 * 1024 * 1024
+        window = min(random_settings["reader_executor_window_size"], reader_executor_max // 2)
+        random_settings["reader_executor_window_size"] = window
+        random_settings["reader_executor_plan_look_ahead"] = min(
+            reader_executor_max,
+            max(
+                random_settings["reader_executor_plan_look_ahead"],
+                2 * window,
+                random_settings["reader_executor_block_size"],
+            ),
+        )
         SettingsRandomizer.disable_distributed_cache_if_needed(args, tags, random_settings)
 
         SettingsRandomizer.adjust_settings_for_autopr(args, tags, random_settings)
