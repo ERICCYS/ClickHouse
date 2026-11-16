@@ -1073,6 +1073,7 @@ String ArrayType::PostgreSQLtypeName(RandomGenerator & rg, const bool escape) co
             break;
         }
     }
+    chassert(nsubtype);
     return nsubtype->PostgreSQLtypeName(rg, escape) + "[]";
 }
 

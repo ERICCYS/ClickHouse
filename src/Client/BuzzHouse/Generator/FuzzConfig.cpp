@@ -99,7 +99,7 @@ struct JSONValue
         throw DB::Exception(DB::ErrorCodes::BUZZHOUSE, "BuzzHouse option {} must be {}", key, expected);
     }
 
-    uint64_t getUInt(const uint64_t max = std::numeric_limits<uint64_t>::max()) const
+    [[nodiscard]] uint64_t getUInt(const uint64_t max = std::numeric_limits<uint64_t>::max()) const
     {
         /// Integers that fit an Int64 are parsed as one, only larger ones are UInt64
         if (value.isInt64() && value.getInt64() >= 0 && static_cast<uint64_t>(value.getInt64()) <= max)
@@ -113,11 +113,11 @@ struct JSONValue
         throwBadValue(fmt::format("an unsigned integer up to {}", max));
     }
 
-    uint32_t getUInt32(const uint32_t max = std::numeric_limits<uint32_t>::max()) const { return static_cast<uint32_t>(getUInt(max)); }
+    [[nodiscard]] uint32_t getUInt32(const uint32_t max = std::numeric_limits<uint32_t>::max()) const { return static_cast<uint32_t>(getUInt(max)); }
 
-    uint32_t getPort() const { return getUInt32(65535); }
+    [[nodiscard]] uint32_t getPort() const { return getUInt32(65535); }
 
-    bool getBool() const
+    [[nodiscard]] bool getBool() const
     {
         if (!value.isBool())
         {
@@ -126,7 +126,7 @@ struct JSONValue
         return value.getBool();
     }
 
-    String getString() const
+    [[nodiscard]] String getString() const
     {
         if (!value.isString())
         {
@@ -135,7 +135,7 @@ struct JSONValue
         return String(value.getString());
     }
 
-    const JSONObjectType & getObject() const
+    [[nodiscard]] const JSONObjectType & getObject() const
     {
         if (!value.isObject())
         {
@@ -144,7 +144,7 @@ struct JSONValue
         return value;
     }
 
-    DB::Strings getStrings() const
+    [[nodiscard]] DB::Strings getStrings() const
     {
         DB::Strings res;
 

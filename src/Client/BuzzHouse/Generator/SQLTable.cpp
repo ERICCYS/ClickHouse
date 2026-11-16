@@ -1173,7 +1173,7 @@ void StatementGenerator::generateMergeTreeEngineDetails(
 
                 columnPathRef(entry, &ref);
                 SQLExprToString(ref_str, ref);
-                if (entry.path.size() == 1 && sorting_str.find(ref_str) == String::npos)
+                if (entry.path.size() == 1 && !sorting_str.contains(ref_str))
                 {
                     this->filtered_entries.emplace_back(std::ref<const ColumnPathChain>(entry));
                 }

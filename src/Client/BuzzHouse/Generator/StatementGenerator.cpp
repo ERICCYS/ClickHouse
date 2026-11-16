@@ -2369,7 +2369,7 @@ std::optional<String> StatementGenerator::alterSingleTable(
                  for (const auto & [_, t2] : this->tables)
                  {
                      /// Paths with macros are not expanded in FETCH
-                     if (t2.isReplicatedMergeTree() && !t2.keeper_path.empty() && t2.keeper_path.find('{') == String::npos)
+                     if (t2.isReplicatedMergeTree() && !t2.keeper_path.empty() && !t2.keeper_path.contains('{'))
                          paths.emplace_back(t2.keeper_path);
                  }
                  generateNextTablePartition(rg, 1, false, false, t, fp->mutable_single_partition()->mutable_partition());
