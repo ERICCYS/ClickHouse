@@ -22,6 +22,7 @@ SET enable_parallel_single_level_merge = 1;
 SET max_rows_to_group_by = 0;
 SET query_plan_aggregation_bucket_top_k = 1; -- The top-K pruning of the adaptive merge
 SET serialize_query_plan = 0; -- The bucket top-K pass refuses a serialized plan (distributed-plan suite), which changes the indexed-table counters
+SET adaptive_aggregator_disable_thaw = 0; -- The randomizer's True disables thawing, which changes the thawed-table counters the test checks
 
 -- Each lane feeds one producer, so every table holds all the keys of its lane whatever the scheduling.
 CREATE VIEW lanes AS
