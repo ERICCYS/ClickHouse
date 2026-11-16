@@ -266,6 +266,8 @@ private:
 
     // Various helper functions follow, normally you shouldn't have to call them.
     Field getRandomField(int type);
+    /// A `(key, value)` tuple, the element type of `Map`
+    Field getRandomMapEntry();
     Field fuzzField(Field field);
     ASTPtr getRandomColumnLike();
     /// Builds a fuzzed asterisk/matcher (`*`, `* LIKE/ILIKE '<pattern>'`, `table.*`, `COLUMNS(...)`),

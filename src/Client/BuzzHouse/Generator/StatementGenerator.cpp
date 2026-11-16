@@ -3925,6 +3925,26 @@ void StatementGenerator::dropTable(const bool staged, bool drop_peer, const Stri
     }
 }
 
+void StatementGenerator::dropTemporaryObjects()
+{
+    /// Temporary tables never have a peer table
+    for (const bool staged : {false, true})
+    {
+        auto & map = staged ? this->staged_tables : this->tables;
+        for (auto it = map.cbegin(), next_it = it; it != map.cend(); it = next_it)
+        {
+            ++next_it;
+            if (it->second.is_temp)
+            {
+                dropTable(staged, false, it->first);
+            }
+        }
+    }
+    const auto is_temp = [](const auto & entry) { return entry.second.is_temp; };
+    std::erase_if(this->views, is_temp);
+    std::erase_if(this->staged_views, is_temp);
+}
+
 void StatementGenerator::dropDatabase(const String & dbkey, const bool all)
 {
     const auto in_database = [&](const auto & entry) { return entry.second.db && entry.second.db->name == dbkey; };

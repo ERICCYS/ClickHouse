@@ -798,6 +798,7 @@ bool Client::buzzHouse()
         {
             gen.setInTransaction(false);
             gen.clearHypotheticals();
+            gen.dropTemporaryObjects();
         };
         SCOPE_EXIT({ after_fuzz_reconnect = {}; });
         while (server_up)
@@ -1262,13 +1263,16 @@ bool Client::buzzHouse()
     {
         LOG_INFO(fuzz_config->log, "The server is not responding, stopping fuzzing");
     }
-    if (!no_timeout)
+    if (!no_timeout || !no_eof)
     {
         /// Don't let the last query's error code become the exit code
         have_error = false;
         error_code = 0;
         server_exception.reset();
         client_exception.reset();
+    }
+    if (!no_timeout)
+    {
         LOG_INFO(fuzz_config->log, "The fuzzing time limit has been reached, stopping fuzzing");
     }
     if (!no_eof)

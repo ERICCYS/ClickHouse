@@ -1061,6 +1061,9 @@ public:
         clearHypotheticalProjections();
     }
 
+    /// Temporary tables and views are session scoped on the server too, so they are all gone after a reconnect
+    void dropTemporaryObjects();
+
     const std::function<bool(const SQLTable &)> attached_tables_to_test_format = [](const SQLTable & t)
     { return t.isAttached() && !t.isNotTruncableEngine() && t.engine.value != TableEngineValues::GenerateRandom; };
     const std::function<bool(const SQLTable &)> attached_tables_to_compare_content = [](const SQLTable & t)

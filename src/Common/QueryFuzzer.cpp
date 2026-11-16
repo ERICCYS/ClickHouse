@@ -483,6 +483,14 @@ void QueryFuzzer::getRandomSettings(SettingsChanges & settings_changes)
 #endif
 }
 
+Field QueryFuzzer::getRandomMapEntry()
+{
+    Tuple entry;
+    entry.push_back(getRandomField(fuzz_rand() % 11));
+    entry.push_back(getRandomField(fuzz_rand() % 11));
+    return entry;
+}
+
 Field QueryFuzzer::getRandomField(int type)
 {
     static constexpr Int64 bad_int64_values[]
@@ -721,15 +729,12 @@ Field QueryFuzzer::getRandomField(int type)
             return tup;
         }
         case 14: {
-            /// Map as a flat alternating [key0, value0, key1, value1, ...] vector, matching how
-            /// Field::Map is parsed, formatted and mutated (the fuzzField(Map) branch below).
+            /// Map as `(key, value)` tuples, like `ParserSetQuery` builds it. In an expression it formats as
+            /// `[(k, v), ...]`, an `Array(Tuple(K, V))`: `ASTLiteral` has no map syntax.
             Map map;
             const size_t n = fuzz_rand() % 3;
             for (size_t i = 0; i < n; ++i)
-            {
-                map.push_back(getRandomField(fuzz_rand() % 11)); /// key
-                map.push_back(getRandomField(fuzz_rand() % 11)); /// value
-            }
+                map.push_back(getRandomMapEntry());
             return map;
         }
         default: chassert(false); return Null{};
@@ -976,57 +981,42 @@ Field QueryFuzzer::fuzzField(Field field)
     }
     else if (type == Field::Types::Map)
     {
+        /// Each element is a `(key, value)` tuple; the `Tuple` branch could resize it, so fuzz the key and value in place.
         auto & map = field.safeGet<Map>();
 
-        /// Erase a key-value pair (two consecutive elements)
-        if (fuzz_rand() % 5 == 0 && map.size() >= 2)
+        if (fuzz_rand() % 5 == 0 && !map.empty())
         {
-            const size_t pos = (fuzz_rand() % (map.size() / 2)) * 2;
-            map.erase(map.begin() + pos, map.begin() + pos + 2);
+            map.erase(map.begin() + fuzz_rand() % map.size());
             if (debug_stream)
-                *debug_stream << "map: erased pair\n";
+                *debug_stream << "map: erased entry\n";
         }
 
-        /// Insert a key-value pair
         if (fuzz_rand() % 5 == 0)
         {
-            const size_t pos = map.size() >= 2 ? (fuzz_rand() % (map.size() / 2)) * 2 : 0;
-            map.insert(map.begin() + pos, fuzzField(getRandomField(fuzz_rand() % 11)));
-            map.insert(map.begin() + pos + 1, fuzzField(getRandomField(fuzz_rand() % 11)));
+            map.insert(map.begin() + fuzz_rand() % (map.size() + 1), getRandomMapEntry());
             if (debug_stream)
-                *debug_stream << fmt::format("map: inserted pair (pos {})\n", pos);
+                *debug_stream << "map: inserted entry\n";
         }
 
-        /// Shuffle whole key-value pairs (a flat shuffle would break key/value adjacency).
-        if (fuzz_rand() % 5 == 0 && map.size() >= 4)
-        {
-            std::vector<std::pair<Field, Field>> pairs;
-            pairs.reserve(map.size() / 2);
-            for (size_t i = 0; i + 1 < map.size(); i += 2)
-                pairs.emplace_back(std::move(map[i]), std::move(map[i + 1]));
-            std::shuffle(pairs.begin(), pairs.end(), fuzz_rand);
-            map.clear();
-            for (auto & [key, value] : pairs)
-            {
-                map.push_back(std::move(key));
-                map.push_back(std::move(value));
-            }
-            if (debug_stream)
-                *debug_stream << "map: shuffled pairs\n";
-        }
-
-        /// Occasionally shuffle the flat key/value list as if it were a plain array, deliberately
-        /// breaking key/value adjacency to exercise malformed Map inputs.
+        /// Shuffle whole key-value pairs: each element is one `(key, value)` tuple
         if (fuzz_rand() % 5 == 0 && map.size() >= 2)
         {
             std::shuffle(map.begin(), map.end(), fuzz_rand);
             if (debug_stream)
-                *debug_stream << "map: shuffled as array\n";
+                *debug_stream << "map: shuffled entries\n";
         }
 
-        for (auto & element : map)
+        for (auto & entry : map)
         {
-            element = fuzzField(element);
+            if (entry.getType() == Field::Types::Tuple)
+            {
+                for (auto & key_or_value : entry.safeGet<Tuple>())
+                    key_or_value = fuzzField(key_or_value);
+            }
+            else
+            {
+                entry = fuzzField(entry);
+            }
         }
     }
 
@@ -1307,7 +1297,8 @@ ASTPtr QueryFuzzer::getRandomExpressionList(const size_t nproj)
     }
 
     ASTPtr new_ast = make_intrusive<ASTExpressionList>();
-    for (size_t i = 0; i < fuzz_rand() % 5 + 1; ++i)
+    const size_t nelems = fuzz_rand() % 5 + 1;
+    for (size_t i = 0; i < nelems; ++i)
     {
         /// Use Group by number in the projection, starting from position 1
         new_ast->children.emplace_back(
@@ -2815,7 +2806,9 @@ void QueryFuzzer::fuzzCreateQuery(ASTCreateQuery & create)
         cons.erase(cons.begin() + fuzz_rand() % cons.size());
     }
 
-    auto original_name = getOriginalTableName(create.getTable());
+    /// A `CREATE DATABASE` gets a fuzzed database name: the seed has just created the original one.
+    const bool is_database = create.database && !create.table;
+    auto original_name = getOriginalTableName(is_database ? create.getDatabase() : create.getTable());
     auto new_name = nextFuzzedTableName(original_name);
 
     /// Occasionally wrap a live fuzzed clone of this table in a Distributed/Remote/RemoteSecure/Buffer/
@@ -2894,6 +2887,11 @@ void QueryFuzzer::fuzzCreateQuery(ASTCreateQuery & create)
         create.columns_list = nullptr;
     }
 
+    if (is_database)
+    {
+        create.setDatabase(new_name);
+        return;
+    }
     create.setTable(new_name);
 
     SipHash sip_hash;
@@ -5101,7 +5099,9 @@ ASTs QueryFuzzer::getDropQueriesForFuzzedTables(const ASTDropQuery & drop_query)
     if (drop_query.kind != ASTDropQuery::Drop)
         return {};
 
-    auto table_name = drop_query.getTable();
+    /// `DROP DATABASE db` drops the fuzzed `db__fuzz_N` databases too.
+    const bool is_database = drop_query.database && !drop_query.table;
+    auto table_name = is_database ? drop_query.getDatabase() : drop_query.getTable();
     auto it = index_of_fuzzed_table.find(table_name);
     if (it == index_of_fuzzed_table.end())
         return {};
@@ -5112,9 +5112,13 @@ ASTs QueryFuzzer::getDropQueriesForFuzzedTables(const ASTDropQuery & drop_query)
     {
         auto fuzzed_name = getFuzzedTableName(table_name, i);
         auto & query = queries.emplace_back(drop_query.clone());
-        query->as<ASTDropQuery>()->setTable(fuzzed_name);
+        auto & drop = query->as<ASTDropQuery &>();
+        if (is_database)
+            drop.setDatabase(fuzzed_name);
+        else
+            drop.setTable(fuzzed_name);
         /// Just in case add IF EXISTS to avoid exceptions.
-        query->as<ASTDropQuery>()->if_exists = true;
+        drop.if_exists = true;
     }
 
     index_of_fuzzed_table.erase(it);
@@ -7491,8 +7495,12 @@ void QueryFuzzer::fuzz(ASTPtr & ast)
     {
         if (fuzz_rand() % 20 == 0)
         {
-            with_union->union_mode
-                = static_cast<SelectUnionMode>(fuzz_rand() % (static_cast<int>(SelectUnionMode::INTERSECT_DISTINCT) + 1));
+            /// The formatter reads `list_of_modes`, and `union_mode` only for a normalized query
+            const auto mode = static_cast<SelectUnionMode>(fuzz_rand() % (static_cast<int>(SelectUnionMode::INTERSECT_DISTINCT) + 1));
+            if (!with_union->is_normalized && !with_union->list_of_modes.empty())
+                with_union->list_of_modes[fuzz_rand() % with_union->list_of_modes.size()] = mode;
+            else
+                with_union->union_mode = mode;
         }
         auto & union_members = with_union->list_of_selects->children;
         if (union_members.size() > 1 && fuzz_rand() % 100 == 0)
@@ -7818,8 +7826,11 @@ void QueryFuzzer::fuzz(ASTPtr & ast)
 
         if (nargs == 2 && fuzz_rand() % 30 == 0 && cast_functions.contains(fn->name))
         {
-            /// Fuzz casts
-            const auto old_type = DataTypeFactory::instance().tryGet(fn->arguments->children[1]);
+            /// Fuzz casts. The parser stores the type as a String literal, `CAST(x, 'T')`.
+            DataTypePtr old_type;
+            if (const auto * type_literal = typeid_cast<const ASTLiteral *>(fn->arguments->children[1].get());
+                type_literal && type_literal->value.getType() == Field::Types::String)
+                old_type = DataTypeFactory::instance().tryGet(type_literal->value.safeGet<String>());
             const auto new_type = old_type ? fuzzDataType(old_type) : getRandomType();
 
             fn->arguments->children[1] = make_intrusive<ASTLiteral>(new_type->getName());
@@ -7888,28 +7899,25 @@ void QueryFuzzer::fuzz(ASTPtr & ast)
                             /// countTuple(), so skip -Tuple entirely when there are no arguments.
                             if (c == "Tuple" && (!fn->arguments || fn->arguments->children.empty()))
                                 return;
+                            /// If appends a random predicate as the condition, ArgMin/ArgMax a random column-like as
+                            /// the key. Without that argument the suffix only gives a wrong number of arguments.
+                            const bool needs_extra_argument = c == "If" || c == "ArgMin" || c == "ArgMax";
+                            ASTPtr extra_argument;
+                            if (needs_extra_argument && fn->arguments)
+                                extra_argument = c == "If" ? generatePredicate() : getRandomColumnLike();
+                            if (needs_extra_argument && !extra_argument)
+                                return;
                             fn->name += c;
-                            if (fn->arguments)
+                            if (extra_argument)
                             {
-                                /// When adding If: append a random predicate as the extra condition argument
-                                if (c == "If")
-                                {
-                                    if (ASTPtr cond = generatePredicate())
-                                        fn->arguments->children.push_back(std::move(cond));
-                                }
-                                /// When adding ArgMin/ArgMax: append a random column-like as the key argument
-                                else if (c == "ArgMin" || c == "ArgMax")
-                                {
-                                    if (ASTPtr key = getRandomColumnLike())
-                                        fn->arguments->children.push_back(std::move(key));
-                                }
-                                /// When adding Tuple: every argument must be a Tuple of the same size,
-                                /// so wrap each in a 1-element tuple to keep the call valid.
-                                else if (c == "Tuple")
-                                {
-                                    for (auto & arg : fn->arguments->children)
-                                        arg = makeASTFunction("tuple", arg);
-                                }
+                                fn->arguments->children.push_back(std::move(extra_argument));
+                            }
+                            /// When adding Tuple: every argument must be a Tuple of the same size,
+                            /// so wrap each in a 1-element tuple to keep the call valid.
+                            else if (c == "Tuple")
+                            {
+                                for (auto & arg : fn->arguments->children)
+                                    arg = makeASTFunction("tuple", arg);
                             }
                         };
                         applyCombinator(combo);
@@ -8372,10 +8380,6 @@ void QueryFuzzer::fuzz(ASTPtr & ast)
                 select->group_by_with_cube = false;
             }
         }
-        /// Toggle the internal "constant keys" GROUP BY flag (GROUP BY over only constant expressions).
-        if (fuzz_rand() % 200 == 0)
-            select->group_by_with_constant_keys = !select->group_by_with_constant_keys;
-
         if (select->where().get())
         {
             if (fuzz_rand() % 50 == 0)
@@ -10567,7 +10571,10 @@ void QueryFuzzer::fuzz(ASTPtr & ast)
         fuzz(ast->children);
     }
 
-    if (auto * query_with_output = typeid_cast<ASTQueryWithOutput *>(ast.get()))
+    /// `dynamic_cast`: `ASTQueryWithOutput` is a base class. `INTO OUTFILE` is valid only on the outermost
+    /// query, and the oracle compares the formatted output.
+    auto * query_with_output = dynamic_cast<ASTQueryWithOutput *>(ast.get());
+    if (query_with_output && !oracle_mode && current_ast_depth <= 1)
     {
         if (query_with_output->out_file)
         {
@@ -10773,10 +10780,12 @@ void QueryFuzzer::addTableLike(ASTPtr ast)
     const auto & name = alias.empty() ? ast->formatForErrorMessage() : alias;
     if (name.size() < 200)
     {
-        const auto res = table_like_map.insert({name, ast});
+        const auto res = table_like_map.insert({name, nullptr});
         if (res.second)
         {
-            table_like.push_back({name, ast});
+            /// Store a copy: the caller mutates `ast` in place, while other threads clone the stored nodes.
+            res.first->second = ast->clone();
+            table_like.push_back({name, res.first->second});
         }
     }
 }
@@ -10804,10 +10813,12 @@ void QueryFuzzer::addColumnLike(ASTPtr ast)
     }
     if (name.size() < 200)
     {
-        const auto res = column_like_map.insert({name, ast});
+        const auto res = column_like_map.insert({name, nullptr});
         if (res.second)
         {
-            column_like.push_back({name, ast});
+            /// Store a copy: the caller mutates `ast` in place, while other threads clone the stored nodes.
+            res.first->second = ast->clone();
+            column_like.push_back({name, res.first->second});
         }
     }
 }
