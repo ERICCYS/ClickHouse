@@ -22,6 +22,8 @@ SET use_top_k_dynamic_filtering = 0;
 SET query_plan_fuse_filter_into_array_join = 1;
 -- The `LIMIT BY` case shows the per-stream `LIMIT BY` hint that this pushes into `Sorting`.
 SET query_plan_push_limit_by_into_sort = 1;
+-- The chain case expects one merged filter.
+SET query_plan_merge_filters = 1;
 
 SELECT '-- disabled: Sorting remains above ArrayJoin';
 EXPLAIN PLAN description = 0
@@ -48,7 +50,7 @@ FROM
 )
 WHERE explain LIKE '%Filter column:%';
 
-SELECT '-- chained ARRAY JOIN: only the outermost step is rewritten';
+SELECT '-- chained ARRAY JOIN: the sort moves below both';
 EXPLAIN PLAN description = 0
 SELECT x FROM t_aj_explain ARRAY JOIN arr ARRAY JOIN arr2 ORDER BY x LIMIT 10
 SETTINGS query_plan_top_k_through_array_join = 1;
