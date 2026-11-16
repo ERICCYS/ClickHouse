@@ -1467,7 +1467,10 @@ static void addSettingsInRandomOrder(
     const std::array<std::function<void(SetValue *)>, 5> & add)
 {
     std::array<uint32_t, 5> added{};
-    const uint32_t total_to_add = to_add[0] + to_add[1] + to_add[2] + to_add[3] + to_add[4];
+    /// Count only the requests that can be picked, otherwise the last picks have all weights zero
+    uint32_t total_to_add = 0;
+    for (size_t j = 0; j < to_add.size(); j++)
+        total_to_add += allowed[j] ? to_add[j] : 0;
 
     for (uint32_t i = 0; i < total_to_add; i++)
     {
