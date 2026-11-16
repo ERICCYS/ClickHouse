@@ -3473,6 +3473,12 @@ void StatementGenerator::generateNextCreateDictionary(RandomGenerator & rg, Crea
         const bool prev_allow_subqueries = this->allow_subqueries;
 
         col.cname = rg.nextIdentifier("c", ncname, fc.allow_nasty_identifiers);
+        /// Nasty identifiers can repeat, which would overwrite a column in `next.cols` and break the key and RANGE counts.
+        /// The plain name is unique: `ncname` is never reused and no nasty identifier starts with `c`
+        if (next.cols.contains(col.getColumnName()))
+        {
+            col.cname = rg.nextIdentifier("c", ncname, false);
+        }
         dc->mutable_col()->set_column(col.getColumnName());
         /// Many types are not allowed in dictionaries
         this->next_type_mask = fc.type_mask
