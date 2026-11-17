@@ -5,7 +5,7 @@
     "version": "1.0",
     "contact": {
       "name": "ClickHouse Support",
-      "url": "https://clickhouse.com/docs/en/cloud/manage/openapi?referrer=openapi-1422730",
+      "url": "https://clickhouse.com/docs/en/cloud/manage/openapi?referrer=openapi-1418320",
       "email": "support@clickhouse.com"
     }
   },
@@ -15700,7 +15700,7 @@
       },
       "get": {
         "summary": "List of organization Postgres services",
-        "description": "**This endpoint is in beta.** API contract is stable, and no breaking changes are expected in the future. <br /><br /> Returns a list of all Postgres services in the organization.",
+        "description": "Returns a list of all Postgres services in the organization.",
         "operationId": "postgresServiceGetList",
         "parameters": [
           {
@@ -15799,18 +15799,15 @@
         "tags": [
           "Postgres"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Returns a list of all Postgres services in the organization.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:view` permission.\n\n</div>\n</div>"
+        }
       }
     },
     "/v1/organizations/{organizationId}/postgres/prometheus": {
       "get": {
         "summary": "Get organization PostgreSQL metrics",
-        "description": "**Disclaimer:** This beta endpoint is evolving; the API contract may change. <br /><br /> Returns Prometheus metrics for all PostgreSQL services in an organization. Maximum 100 services supported.",
+        "description": "Returns Prometheus metrics for all PostgreSQL services in an organization. Maximum 100 services supported.",
         "operationId": "postgresOrgPrometheusGet",
         "parameters": [
           {
@@ -15891,18 +15888,15 @@
         "tags": [
           "Prometheus"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Returns Prometheus metrics for all PostgreSQL services in an organization. Maximum 100 services supported.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:view` permission.\n\n</div>\n</div>"
+        }
       }
     },
     "/v1/organizations/{organizationId}/postgres/{postgresId}": {
       "get": {
         "summary": "Get PostgreSQL service details",
-        "description": "**This endpoint is in beta.** API contract is stable, and no breaking changes are expected in the future. <br /><br /> Returns a Postgres service that belongs to the organization",
+        "description": "Returns a Postgres service that belongs to the organization",
         "operationId": "postgresServiceGet",
         "parameters": [
           {
@@ -16008,16 +16002,13 @@
         "tags": [
           "Postgres"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Returns a Postgres service that belongs to the organization\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:view` permission.\n\n</div>\n</div>"
+        }
       },
       "delete": {
         "summary": "Delete a PostgreSQL service",
-        "description": "**This endpoint is in beta.** API contract is stable, and no breaking changes are expected in the future. <br /><br /> Deletes a Postgres service that belongs to the organization. Returns 409 if deletion protection is enabled for the service.",
+        "description": "Deletes a Postgres service that belongs to the organization. Returns 409 if deletion protection is enabled for the service.",
         "operationId": "postgresServiceDelete",
         "parameters": [
           {
@@ -16120,16 +16111,13 @@
         "tags": [
           "Postgres"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Deletes a Postgres service that belongs to the organization. Returns 409 if deletion protection is enabled for the service.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:manage` permission.\n\n</div>\n</div>"
+        }
       },
       "patch": {
         "summary": "Update a PostgreSQL service",
-        "description": "**This endpoint is in beta.** API contract is stable, and no breaking changes are expected in the future. <br /><br /> Update a Postgres service that belongs to the organization. **WARNING:** Changing the name also updates the host name and certificates for the service.",
+        "description": "Update a Postgres service that belongs to the organization. **WARNING:** Changing the name also updates the host name and certificates for the service.",
         "operationId": "postgresServicePatch",
         "parameters": [
           {
@@ -16244,18 +16232,15 @@
         "tags": [
           "Postgres"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Update a Postgres service that belongs to the organization. **WARNING:** Changing the name also updates the host name and certificates for the service.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:manage` permission.\n\n</div>\n</div>"
+        }
       }
     },
     "/v1/organizations/{organizationId}/postgres/{postgresId}/caCertificates": {
       "get": {
         "summary": "Get Postgres CA certs",
-        "description": "**This endpoint is in beta.** API contract is stable, and no breaking changes are expected in the future. <br /><br /> Download CA certificates for a PostgreSQL service",
+        "description": "Download CA certificates for a PostgreSQL service",
         "operationId": "postgresServiceCertsGet",
         "parameters": [
           {
@@ -16354,18 +16339,15 @@
         "tags": [
           "Postgres"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Download CA certificates for a PostgreSQL service\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:view` permission.\n\n</div>\n</div>"
+        }
       }
     },
     "/v1/organizations/{organizationId}/postgres/{postgresId}/restoredService": {
       "post": {
         "summary": "Restore a Postgres service",
-        "description": "**This endpoint is in beta.** API contract is stable, and no breaking changes are expected in the future. <br /><br /> Restore a Postgres database from continuous backup, optionally at a specific point in time.",
+        "description": "Restore a Postgres database from continuous backup, optionally at a specific point in time.",
         "operationId": "postgresInstanceRestore",
         "parameters": [
           {
@@ -16480,18 +16462,15 @@
         "tags": [
           "Postgres"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Restore a Postgres database from continuous backup, optionally at a specific point in time.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permissions</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:manage`, `control-plane:organization:create-service` permissions.\n\n</div>\n</div>"
+        }
       }
     },
     "/v1/organizations/{organizationId}/postgres/{postgresId}/password": {
       "patch": {
         "summary": "Update Postgres superuser password",
-        "description": "**This endpoint is in beta.** API contract is stable, and no breaking changes are expected in the future. <br /><br /> Sets a new password for a Postgres service's superuser account.",
+        "description": "Sets a new password for a Postgres service's superuser account.",
         "operationId": "postgresServiceSetPassword",
         "parameters": [
           {
@@ -16606,18 +16585,15 @@
         "tags": [
           "Postgres"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Sets a new password for a Postgres service's superuser account.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:manage` permission.\n\n</div>\n</div>"
+        }
       }
     },
     "/v1/organizations/{organizationId}/postgres/{postgresId}/state": {
       "patch": {
         "summary": "Update Postgres service state",
-        "description": "**This endpoint is in beta.** API contract is stable, and no breaking changes are expected in the future. <br /><br /> Initiate a process for a Postgres service:\n* restart: Initiates a service restart\n* promote: Promotes a read replica to primary\n* switchover: Switch a primary over to a standby. If there is no standby, replace the primary with a newly provisioned server and switch over to it.\n",
+        "description": "Initiate a process for a Postgres service:\n* restart: Initiates a service restart\n* promote: Promotes a read replica to primary\n* switchover: Switch a primary over to a standby. If there is no standby, replace the primary with a newly provisioned server and switch over to it.\n",
         "operationId": "postgresServicePatchState",
         "parameters": [
           {
@@ -16732,18 +16708,15 @@
         "tags": [
           "Postgres"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Initiate a process for a Postgres service:\n* restart: Initiates a service restart\n* promote: Promotes a read replica to primary\n* switchover: Switch a primary over to a standby. If there is no standby, replace the primary with a newly provisioned server and switch over to it.\n\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:manage` permission.\n\n</div>\n</div>"
+        }
       }
     },
     "/v1/organizations/{organizationId}/postgres/{postgresId}/readReplica": {
       "post": {
         "summary": "Create a read replica for a Postgres service",
-        "description": "**This endpoint is in beta.** API contract is stable, and no breaking changes are expected in the future. <br /><br /> Initiate the process to create a new read replica for a Postgres service.",
+        "description": "Initiate the process to create a new read replica for a Postgres service.",
         "operationId": "postgresInstanceCreateReadReplica",
         "parameters": [
           {
@@ -16858,18 +16831,15 @@
         "tags": [
           "Postgres"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Initiate the process to create a new read replica for a Postgres service.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permissions</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:manage`, `control-plane:organization:create-service` permissions.\n\n</div>\n</div>"
+        }
       }
     },
     "/v1/organizations/{organizationId}/postgres/{postgresId}/config": {
       "get": {
         "summary": "Get PostgreSQL service configuration",
-        "description": "**This endpoint is in beta.** API contract is stable, and no breaking changes are expected in the future. <br /><br /> Returns the configuration data for a Postgres service and its PgBouncer service.",
+        "description": "Returns the configuration data for a Postgres service and its PgBouncer service.",
         "operationId": "postgresInstanceConfigGet",
         "parameters": [
           {
@@ -16975,16 +16945,13 @@
         "tags": [
           "Postgres"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Returns the configuration data for a Postgres service and its PgBouncer service.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:view` permission.\n\n</div>\n</div>"
+        }
       },
       "post": {
         "summary": "Replace Postgres service configuration",
-        "description": "**This endpoint is in beta.** API contract is stable, and no breaking changes are expected in the future. <br /><br /> Replace the existing Postgres service and pgBouncer configuration.",
+        "description": "Replace the existing Postgres service and pgBouncer configuration.",
         "operationId": "postgresInstanceConfigPost",
         "parameters": [
           {
@@ -17099,16 +17066,13 @@
         "tags": [
           "Postgres"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Replace the existing Postgres service and pgBouncer configuration.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:manage` permission.\n\n</div>\n</div>"
+        }
       },
       "patch": {
         "summary": "Update Postgres service configuration",
-        "description": "**This endpoint is in beta.** API contract is stable, and no breaking changes are expected in the future. <br /><br /> Update the existing Postgres service and pgBouncer configuration.",
+        "description": "Update the existing Postgres service and pgBouncer configuration.",
         "operationId": "postgresInstanceConfigPatch",
         "parameters": [
           {
@@ -17223,18 +17187,15 @@
         "tags": [
           "Postgres"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Update the existing Postgres service and pgBouncer configuration.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:manage` permission.\n\n</div>\n</div>"
+        }
       }
     },
     "/v1/organizations/{organizationId}/postgres/{postgresId}/prometheus": {
       "get": {
         "summary": "Get PostgreSQL service metrics",
-        "description": "**Disclaimer:** This beta endpoint is evolving; the API contract may change. <br /><br /> Returns Prometheus metrics for a PostgreSQL service.",
+        "description": "Returns Prometheus metrics for a PostgreSQL service.",
         "operationId": "postgresInstancePrometheusGet",
         "parameters": [
           {
@@ -17325,18 +17286,15 @@
         "tags": [
           "Prometheus"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Returns Prometheus metrics for a PostgreSQL service.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:view` permission.\n\n</div>\n</div>"
+        }
       }
     },
     "/v1/organizations/{organizationId}/postgres/{postgresId}/metrics": {
       "get": {
         "summary": "Get Postgres time-series metrics",
-        "description": "**This endpoint is in beta.** API contract is stable, and no breaking changes are expected in the future. <br /><br /> Returns bucketed time-series metrics for a PostgreSQL service over the requested window (CPU, memory, disk, network, connections, cache hit ratio, throughput, transactions, wait events, lock waits, and more). Use this to chart or analyze how a service behaved over time.",
+        "description": "Returns bucketed time-series metrics for a PostgreSQL service over the requested window (CPU, memory, disk, network, connections, cache hit ratio, throughput, transactions, wait events, lock waits, and more). Use this to chart or analyze how a service behaved over time.",
         "operationId": "postgresInstanceMetricsGet",
         "parameters": [
           {
@@ -17471,18 +17429,15 @@
         "tags": [
           "Postgres"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Returns bucketed time-series metrics for a PostgreSQL service over the requested window (CPU, memory, disk, network, connections, cache hit ratio, throughput, transactions, wait events, lock waits, and more). Use this to chart or analyze how a service behaved over time.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:view` permission.\n\n</div>\n</div>"
+        }
       }
     },
     "/v1/organizations/{organizationId}/postgres/{postgresId}/backups": {
       "get": {
         "summary": "List of Postgres service backups",
-        "description": "**This endpoint is in beta.** API contract is stable, and no breaking changes are expected in the future. <br /><br /> Returns a list of the base backups retained for a Postgres service, ordered by last modified date, newest first. Results are capped at `limit` (default and maximum 100) per page. Every response carries `limit`, `totalCount` and `nextCursor`; pass `nextCursor` as the `cursor` query parameter to fetch the next page, repeating until it is null. A Postgres service is recovered to a point in time rather than to a single backup, so restore it with the restore endpoint and a timestamp between the service's `earliestRestoreTime` and now, rather than with a backup key from this list.",
+        "description": "Returns a list of the base backups retained for a Postgres service, ordered by last modified date, newest first. Results are capped at `limit` (default and maximum 100) per page. Every response carries `limit`, `totalCount` and `nextCursor`; pass `nextCursor` as the `cursor` query parameter to fetch the next page, repeating until it is null. A Postgres service is recovered to a point in time rather than to a single backup, so restore it with the restore endpoint and a timestamp between the service's `earliestRestoreTime` and now, rather than with a backup key from this list.",
         "operationId": "postgresServiceBackupGetList",
         "parameters": [
           {
@@ -17628,18 +17583,15 @@
         "tags": [
           "Postgres"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Returns a list of the base backups retained for a Postgres service, ordered by last modified date, newest first. Results are capped at `limit` (default and maximum 100) per page. Every response carries `limit`, `totalCount` and `nextCursor`; pass `nextCursor` as the `cursor` query parameter to fetch the next page, repeating until it is null. A Postgres service is recovered to a point in time rather than to a single backup, so restore it with the restore endpoint and a timestamp between the service's `earliestRestoreTime` and now, rather than with a backup key from this list.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:view` permission.\n\n</div>\n</div>"
+        }
       }
     },
     "/v1/organizations/{organizationId}/postgres/{postgresId}/slowQueryPatterns": {
       "get": {
         "summary": "List Postgres slow query patterns",
-        "description": "**This endpoint is in beta.** API contract is stable, and no breaking changes are expected in the future. <br /><br /> Returns aggregate metrics for the slowest query patterns observed on a Postgres service during the given time window. Use this to discover which queries dominate total execution time, CPU, I/O, or WAL generation.",
+        "description": "Returns aggregate metrics for the slowest query patterns observed on a Postgres service during the given time window. Use this to discover which queries dominate total execution time, CPU, I/O, or WAL generation.",
         "operationId": "slowQueryPatternsGetList",
         "parameters": [
           {
@@ -17858,18 +17810,15 @@
         "tags": [
           "Postgres"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Returns aggregate metrics for the slowest query patterns observed on a Postgres service during the given time window. Use this to discover which queries dominate total execution time, CPU, I/O, or WAL generation.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:view` permission.\n\n</div>\n</div>"
+        }
       }
     },
     "/v1/organizations/{organizationId}/postgres/{postgresId}/slowQueryPatterns/{queryId}": {
       "get": {
         "summary": "Get a Postgres slow query pattern with recent executions",
-        "description": "**This endpoint is in beta.** API contract is stable, and no breaking changes are expected in the future. <br /><br /> Returns aggregate metrics for a single slow query pattern together with its most recent individual executions.",
+        "description": "Returns aggregate metrics for a single slow query pattern together with its most recent individual executions.",
         "operationId": "slowQueryPatternGet",
         "parameters": [
           {
@@ -18028,18 +17977,15 @@
         "tags": [
           "Postgres"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Returns aggregate metrics for a single slow query pattern together with its most recent individual executions.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:view` permission.\n\n</div>\n</div>"
+        }
       }
     },
     "/v1/organizations/{organizationId}/postgres/{postgresId}/logs": {
       "get": {
         "summary": "List Postgres server logs",
-        "description": "**This endpoint is in beta.** API contract is stable, and no breaking changes are expected in the future. <br /><br /> Returns PostgreSQL server log entries for a Postgres service within the given time window, most recent first by default (override with `sort_order`). Results are paginated with `limit`/`offset`; advance `offset` until a page returns fewer than `limit` entries to read the full window. The time range must not exceed 30 days, and `to_date` must be after `from_date`.",
+        "description": "Returns PostgreSQL server log entries for a Postgres service within the given time window, most recent first by default (override with `sort_order`). Results are paginated with `limit`/`offset`; advance `offset` until a page returns fewer than `limit` entries to read the full window. The time range must not exceed 30 days, and `to_date` must be after `from_date`.",
         "operationId": "postgresLogsGetList",
         "parameters": [
           {
@@ -18228,12 +18174,9 @@
         "tags": [
           "Postgres"
         ],
-        "x-badges": [
-          {
-            "name": "Beta",
-            "position": "after"
-          }
-        ]
+        "x-mint": {
+          "content": "Returns PostgreSQL server log entries for a Postgres service within the given time window, most recent first by default (override with `sort_order`). Results are paginated with `limit`/`offset`; advance `offset` until a page returns fewer than `limit` entries to read the full window. The time range must not exceed 30 days, and `to_date` must be after `from_date`.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:postgres-service:view` permission.\n\n</div>\n</div>"
+        }
       }
     },
     "/v1/organizations/{organizationId}/privateEndpointConfig": {
@@ -22966,7 +22909,7 @@
           }
         },
         "x-mint": {
-          "content": "Creates an org-scoped presigned application/zip upload URL. Callers must use an upload ID for only one create or version attempt and request a new upload URL when retrying.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:manage` permission.\n\n</div>\n</div>"
+          "content": "Creates an org-scoped presigned application/zip upload URL. Callers must use an upload ID for only one create or version attempt and request a new upload URL when retrying.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:manage-udfs` permission.\n\n</div>\n</div>"
         }
       }
     },
@@ -23184,7 +23127,7 @@
           }
         },
         "x-mint": {
-          "content": "Returns the latest version of each UDF in the organization.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:view` permission.\n\n</div>\n</div>"
+          "content": "Returns the latest version of each UDF in the organization.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:view-udfs` permission.\n\n</div>\n</div>"
         }
       },
       "post": {
@@ -23454,7 +23397,7 @@
           }
         },
         "x-mint": {
-          "content": "Creates a new UDF. See [User-defined functions in Cloud](https://clickhouse.com/docs/products/cloud/features/sql-console-features/user-defined-functions).\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:manage` permission.\n\n</div>\n</div>"
+          "content": "Creates a new UDF. See [User-defined functions in Cloud](https://clickhouse.com/docs/products/cloud/features/sql-console-features/user-defined-functions).\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:manage-udfs` permission.\n\n</div>\n</div>"
         }
       }
     },
@@ -23691,7 +23634,7 @@
           }
         },
         "x-mint": {
-          "content": "Deletes every version of a UDF and detaches it from all services. Removal from services completes asynchronously.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:manage` permission.\n\n</div>\n</div>"
+          "content": "Deletes every version of a UDF and detaches it from all services. Removal from services completes asynchronously.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:manage-udfs` permission.\n\n</div>\n</div>"
         }
       },
       "get": {
@@ -23897,7 +23840,7 @@
           }
         },
         "x-mint": {
-          "content": "Returns the latest version of a UDF.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:view` permission.\n\n</div>\n</div>"
+          "content": "Returns the latest version of a UDF.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:view-udfs` permission.\n\n</div>\n</div>"
         }
       }
     },
@@ -24159,7 +24102,7 @@
           }
         },
         "x-mint": {
-          "content": "Returns the current service attachments for a UDF, with at most one attachment per service.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:view` permission.\n\n</div>\n</div>"
+          "content": "Returns the current service attachments for a UDF, with at most one attachment per service.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:view-udfs` permission.\n\n</div>\n</div>"
         }
       }
     },
@@ -24408,7 +24351,7 @@
           }
         },
         "x-mint": {
-          "content": "Detaches a UDF from a service.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:manage` permission.\n\n</div>\n</div>"
+          "content": "Detaches a UDF from a service.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:manage-udfs` permission.\n\n</div>\n</div>"
         }
       },
       "get": {
@@ -24626,7 +24569,7 @@
           }
         },
         "x-mint": {
-          "content": "Returns the current attachment of a UDF to one service.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:view` permission.\n\n</div>\n</div>"
+          "content": "Returns the current attachment of a UDF to one service.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:view-udfs` permission.\n\n</div>\n</div>"
         }
       },
       "put": {
@@ -24959,7 +24902,7 @@
           }
         },
         "x-mint": {
-          "content": "Attaches one UDF version to a service, replacing the current version when necessary. When version is omitted, the latest ready version is attached.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:manage` permission.\n\n</div>\n</div>"
+          "content": "Attaches one UDF version to a service, replacing the current version when necessary. When version is omitted, the latest ready version is attached.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:manage-udfs` permission.\n\n</div>\n</div>"
         }
       }
     },
@@ -25221,7 +25164,7 @@
           }
         },
         "x-mint": {
-          "content": "Returns all versions of a UDF.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:view` permission.\n\n</div>\n</div>"
+          "content": "Returns all versions of a UDF.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:view-udfs` permission.\n\n</div>\n</div>"
         }
       },
       "post": {
@@ -25535,7 +25478,7 @@
           }
         },
         "x-mint": {
-          "content": "Consumes a source archive, assigns a version, and starts the UDF build. Optional configuration fields omitted from the request use the defaults documented in the request schema; values are not inherited from the previous version. Retry by requesting a new upload URL and re-uploading.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:manage` permission.\n\n</div>\n</div>"
+          "content": "Consumes a source archive, assigns a version, and starts the UDF build. Optional configuration fields omitted from the request use the defaults documented in the request schema; values are not inherited from the previous version. Retry by requesting a new upload URL and re-uploading.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:manage-udfs` permission.\n\n</div>\n</div>"
         }
       }
     },
@@ -25784,7 +25727,7 @@
           }
         },
         "x-mint": {
-          "content": "Deletes a UDF version. The UDF must not be attached to any services.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:manage` permission.\n\n</div>\n</div>"
+          "content": "Deletes a UDF version. The UDF must not be attached to any services.\n\n<div data-permissions class=\"api-section\">\n<div class=\"api-section-heading flex flex-col gap-y-4 w-full\">\n<div class=\"flex items-baseline border-b pb-2.5 border-gray-100 dark:border-gray-800 w-full\">\n<h4 class=\"api-section-heading-title flex-1 mb-0\">Permission</h4>\n</div>\n</div>\n<div class=\"py-6\">\n\nThe API key must have the `control-plane:organization:manage-udfs` permission.\n\n</div>\n</div>"
         }
       }
     }
@@ -42474,6 +42417,7 @@
         "type": "string",
         "title": "Postgres major version",
         "enum": [
+          "19",
           "18",
           "17"
         ]
